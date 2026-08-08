@@ -1,0 +1,47 @@
+{
+  "name": "line-oa-monitor",
+  "version": "0.1.0",
+  "description": "LINE OA Retail Sales Daily Monitoring - Internal automation tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "login": "tsx src/scripts/login.ts",
+    "inspect:chat-list": "tsx src/scripts/inspectChatList.ts",
+    "collect:chat-list": "tsx src/scripts/collectChatList.ts",
+    "collect:snapshots": "tsx src/scripts/collectSnapshots.ts",
+    "collect:details": "tsx src/scripts/collectSnapshots.ts",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "test:classify": "tsx src/tests/messageClassification.check.ts",
+    "test:time": "tsx src/tests/messageTimeParser.check.ts",
+    "test:kpi": "tsx src/tests/responseSessionBuilder.check.ts",
+    "test:chatkey": "tsx src/tests/chatKeyMatch.check.ts",
+    "kpi:daily": "tsx src/scripts/computeDailyKpi.ts",
+    "inspect:dom": "tsx src/scripts/inspectDom.ts",
+    "server": "tsx src/server/index.ts",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "mssql": "^12.7.0",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/mssql": "^12.3.0",
+    "@types/node": "^22.13.4",
+    "playwright": "^1.50.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
