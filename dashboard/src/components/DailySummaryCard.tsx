@@ -17,6 +17,7 @@ import {
 } from '../lib/api';
 import { formatAppDateTime } from '../lib/dateTime';
 import { deriveDayStatus } from '../lib/dailySummaryStatus';
+import { formatDateRange } from '../lib/dateRange';
 import { useI18n } from '../lib/i18n';
 
 type Props = {
@@ -26,7 +27,7 @@ type Props = {
 
 type ReportKpi = NonNullable<OverviewReport['kpi']>;
 
-const BAR_COLORS = ['#0b6e72', '#c4782c', '#5c6e78'] as const;
+const BAR_COLORS = ['#1c1914', '#e8a317', '#5c6e78'] as const;
 
 /**
  * Landscape executive brief (~1280×720) for PNG capture.
@@ -74,7 +75,9 @@ export function DailySummaryCard({ data, exportedAtIso }: Props) {
         <div className="daily-summary-card__brand">
           <p className="daily-summary-card__eyebrow">{t.brandEyebrow}</p>
           <h1 className="daily-summary-card__title">{t.dailySummaryTitle}</h1>
-          <p className="daily-summary-card__date font-mono">{data.businessDate}</p>
+          <p className="daily-summary-card__date font-mono">
+            {formatDateRange(data.fromDate ?? data.businessDate, data.toDate ?? data.businessDate)}
+          </p>
           <p className="daily-summary-card__total-chats">
             {t.totalChatsHint(fmtNum(report.totalChats, 0))}
             {report.excludedRoomCount > 0

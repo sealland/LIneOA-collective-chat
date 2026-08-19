@@ -1,0 +1,198 @@
+﻿{
+    "employees":  [
+                      {
+                          "employeeName":  "Beam ZuBB Steel",
+                          "answeredSessions":  349,
+                          "officialAnsweredSessions":  333,
+                          "avgFrtMinutes":  11.792792792792794,
+                          "medianFrtMinutes":  3,
+                          "p90FrtMinutes":  26,
+                          "withinSlaCount":  277,
+                          "slaPct":  0.8318318318318318,
+                          "messagesSent":  735,
+                          "firstResponses":  349,
+                          "concernLevel":  "OK"
+                      },
+                      {
+                          "employeeName":  "JAN",
+                          "answeredSessions":  202,
+                          "officialAnsweredSessions":  198,
+                          "avgFrtMinutes":  11.207070707070708,
+                          "medianFrtMinutes":  3,
+                          "p90FrtMinutes":  18,
+                          "withinSlaCount":  172,
+                          "slaPct":  0.8686868686868687,
+                          "messagesSent":  417,
+                          "firstResponses":  202,
+                          "concernLevel":  "OK"
+                      },
+                      {
+                          "employeeName":  "แก้วใส",
+                          "answeredSessions":  190,
+                          "officialAnsweredSessions":  188,
+                          "avgFrtMinutes":  27.638297872340427,
+                          "medianFrtMinutes":  7,
+                          "p90FrtMinutes":  64,
+                          "withinSlaCount":  124,
+                          "slaPct":  0.6595744680851063,
+                          "messagesSent":  299,
+                          "firstResponses":  190,
+                          "concernLevel":  "WATCH"
+                      },
+                      {
+                          "employeeName":  "Tikky",
+                          "answeredSessions":  174,
+                          "officialAnsweredSessions":  171,
+                          "avgFrtMinutes":  17.485380116959064,
+                          "medianFrtMinutes":  3,
+                          "p90FrtMinutes":  48,
+                          "withinSlaCount":  137,
+                          "slaPct":  0.8011695906432749,
+                          "messagesSent":  358,
+                          "firstResponses":  174,
+                          "concernLevel":  "OK"
+                      },
+                      {
+                          "employeeName":  "N.Ploykaew",
+                          "answeredSessions":  74,
+                          "officialAnsweredSessions":  71,
+                          "avgFrtMinutes":  25.08450704225352,
+                          "medianFrtMinutes":  3,
+                          "p90FrtMinutes":  66,
+                          "withinSlaCount":  50,
+                          "slaPct":  0.704225352112676,
+                          "messagesSent":  158,
+                          "firstResponses":  74,
+                          "concernLevel":  "WATCH"
+                      },
+                      {
+                          "employeeName":  "NuNa",
+                          "answeredSessions":  37,
+                          "officialAnsweredSessions":  37,
+                          "avgFrtMinutes":  13.486486486486486,
+                          "medianFrtMinutes":  6,
+                          "p90FrtMinutes":  48,
+                          "withinSlaCount":  30,
+                          "slaPct":  0.8108108108108109,
+                          "messagesSent":  84,
+                          "firstResponses":  37,
+                          "concernLevel":  "OK"
+                      },
+                      {
+                          "employeeName":  "❤ ραгɴ¹¹",
+                          "answeredSessions":  21,
+                          "officialAnsweredSessions":  19,
+                          "avgFrtMinutes":  9.052631578947368,
+                          "medianFrtMinutes":  4,
+                          "p90FrtMinutes":  31,
+                          "withinSlaCount":  15,
+                          "slaPct":  0.7894736842105263,
+                          "messagesSent":  82,
+                          "firstResponses":  21,
+                          "concernLevel":  "WATCH"
+                      },
+                      {
+                          "employeeName":  "ข้อความตอบกลับอัตโนมัติ",
+                          "answeredSessions":  10,
+                          "officialAnsweredSessions":  8,
+                          "avgFrtMinutes":  0,
+                          "medianFrtMinutes":  0,
+                          "p90FrtMinutes":  0,
+                          "withinSlaCount":  8,
+                          "slaPct":  1,
+                          "messagesSent":  81,
+                          "firstResponses":  10,
+                          "concernLevel":  "OK"
+                      },
+                      {
+                          "employeeName":  "TANGKWA",
+                          "answeredSessions":  3,
+                          "officialAnsweredSessions":  3,
+                          "avgFrtMinutes":  6,
+                          "medianFrtMinutes":  6,
+                          "p90FrtMinutes":  6,
+                          "withinSlaCount":  3,
+                          "slaPct":  1,
+                          "messagesSent":  12,
+                          "firstResponses":  3,
+                          "concernLevel":  "OK"
+                      }
+                  ],
+    "overview":  {
+                     "businessDate":  "2026-08-14",
+                     "fromDate":  "2026-08-01",
+                     "toDate":  "2026-08-14",
+                     "kpi":  {
+                                 "totalSessions":  1325,
+                                 "answeredSessions":  1060,
+                                 "waitingSessions":  265,
+                                 "officialAnsweredSessions":  1028,
+                                 "avgFrtMinutes":  16.344357976653697,
+                                 "medianFrtMinutes":  3,
+                                 "p90FrtMinutes":  36,
+                                 "withinSlaCount":  816,
+                                 "responseRate":  0.8,
+                                 "slaPct":  0.7937743190661478,
+                                 "unreadRooms":  2,
+                                 "maxWaitingMinutes":  18872,
+                                 "computedAt":  "2026-08-14T03:48:25.135Z"
+                             },
+                     "activeConversations":  284,
+                     "oldestUnreadMinutes":  5397,
+                     "oldestUnreadChatKey":  "avatar:https://profile.line-scdn.net/0hsJqosH2LLGVcFj-k7h5SGixGLw9_Z3V3I3E0Bj1BdABoIW5mInJjA20XIFxoLm80IiQ2AWAVJwFQBVsDQkDQUVsmclJhL2k1eHhmgA",
+                     "oldestUnreadCustomerName":  "ภูมิทรัพย์69-หนูนา",
+                     "longestWaitingRoom":  {
+                                                "chatKey":  "avatar:https://profile.line-scdn.net/0hA_Whfqo8HnB6ETOwTRNgDwpBHRpZYEdiAiVYFhpDFRdEIlF1BSJZFx0XFUVEKFEgBCBVFElEQ0F2AmkWZEfiRH0hQEdHKFsgXn9UlQ",
+                                                "customerName":  "ZUBB_พี่แก้ว",
+                                                "waitingMinutes":  18872,
+                                                "lastMessagePreview":  "ZUBB_พี่แก้ว ส่งรูป",
+                                                "assignedAgent":  null
+                                            },
+                     "unassignedRooms":  281,
+                     "roomsWithoutTag":  22,
+                     "roomsWithoutNote":  61,
+                     "collection":  {
+                                        "lastRunId":  "60",
+                                        "lastRunStatus":  "SUCCESS",
+                                        "lastStartedAt":  "2026-08-14T03:40:25.617Z",
+                                        "lastFinishedAt":  "2026-08-14T03:47:22.268Z",
+                                        "collectionComplete":  true,
+                                        "errorMessage":  null
+                                    },
+                     "report":  {
+                                    "slaMinutes":  15,
+                                    "totalChats":  283,
+                                    "excludedRoomCount":  1,
+                                    "topWaitingRooms":  [
+                                                            {
+                                                                "customerName":  "ZUBB_พี่แก้ว",
+                                                                "waitingMinutes":  18872
+                                                            },
+                                                            {
+                                                                "customerName":  "ZUBB_พี่แก้ว",
+                                                                "waitingMinutes":  18872
+                                                            },
+                                                            {
+                                                                "customerName":  "ZUBB เกล็ดแก้ว",
+                                                                "waitingMinutes":  18839
+                                                            },
+                                                            {
+                                                                "customerName":  "เค ยู เค แมเนจ-บีม",
+                                                                "waitingMinutes":  18838
+                                                            },
+                                                            {
+                                                                "customerName":  "เค ยู เค แมเนจ-บีม",
+                                                                "waitingMinutes":  18838
+                                                            }
+                                                        ],
+                                    "kpi":  {
+                                                "answeredSessions":  1055,
+                                                "waitingSessions":  257,
+                                                "responseRate":  0.8041158536585366,
+                                                "slaPct":  0.7947214076246334,
+                                                "unreadRooms":  4,
+                                                "maxWaitingMinutes":  18872
+                                            }
+                                }
+                 }
+}

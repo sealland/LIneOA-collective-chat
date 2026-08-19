@@ -1,5 +1,7 @@
 export type OverviewResponse = {
   businessDate: string;
+  fromDate?: string;
+  toDate?: string;
   kpi: {
     totalSessions: number;
     answeredSessions: number;
@@ -19,6 +21,13 @@ export type OverviewResponse = {
   oldestUnreadMinutes: number | null;
   oldestUnreadChatKey: string | null;
   oldestUnreadCustomerName: string | null;
+  longestWaitingRoom?: {
+    chatKey: string;
+    customerName: string | null;
+    waitingMinutes: number;
+    lastMessagePreview: string | null;
+    assignedAgent: string | null;
+  } | null;
   unassignedRooms: number;
   roomsWithoutTag: number;
   roomsWithoutNote: number;
@@ -93,6 +102,7 @@ export type EmployeeRow = {
 export type ConversationRow = {
   chatKey: string;
   customerName: string | null;
+  isNewCustomer: boolean;
   lastMessagePreview: string | null;
   lastMessageTime: string | null;
   isUnread: boolean;
@@ -113,6 +123,8 @@ export type ConversationRow = {
 
 export type ConversationDetail = {
   businessDate: string;
+  fromDate?: string;
+  toDate?: string;
   summary: ConversationRow;
   notes: string[];
   chatStatus: string | null;
@@ -143,9 +155,12 @@ export type ConversationDetail = {
 
 export type QualityResponse = {
   businessDate: string;
+  fromDate?: string;
+  toDate?: string;
   discoveredRooms: number;
   readRoomsInspected: number;
   unreadRoomsSkipped: number;
+  identityRenamedRooms: number;
   failedRooms: number;
   messagesCollected: number;
   roomsWithoutTag: number;

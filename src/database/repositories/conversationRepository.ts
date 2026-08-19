@@ -1,6 +1,7 @@
 import { getPool, sql } from '../connection.js';
 import type { ChatListItem } from '../../types/index.js';
 import { normalizeChatKey } from '../../automation/utils/chatKey.js';
+import { recordConversationNames } from './identityRepository.js';
 import { createModuleLogger } from '../../logger/index.js';
 
 const log = createModuleLogger('repo:conversations');
@@ -30,6 +31,7 @@ export async function upsertConversation(item: ChatListItem, seenAt: Date): Prom
         VALUES (@chat_key, @customer_name, @customer_avatar_url, @seen_at, @seen_at);
     `);
 
+  await recordConversationNames(item);
   return chatKey;
 }
 

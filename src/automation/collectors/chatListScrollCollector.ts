@@ -2,7 +2,11 @@ import type { Page } from 'playwright';
 import { config } from '../../config/index.js';
 import { createModuleLogger } from '../../logger/index.js';
 import { findAllMatching } from '../selectors/selectorAdapter.js';
-import { parseChatRow } from './chatRowParser.js';
+import {
+  parseChatRow,
+  readChatRowFields,
+  shouldParseChatRow,
+} from './chatRowParser.js';
 import { waitForChatListReady } from '../utils/chatPageWait.js';
 import { scrollChatListUntilExhausted, resolveScrollContainer } from '../utils/virtualScroll.js';
 import { captureErrorContext } from '../utils/screenshot.js';
@@ -69,13 +73,15 @@ export async function collectChatListWithScroll(page: Page): Promise<ScrollColle
     }
 
     const parseVisible = async (): Promise<number> => {
-      const rowCount = await rows.count();
+      const rowFields = await readChatRowFields(rows);
       let added = 0;
 
-      for (let i = 0; i < rowCount; i++) {
+      for (let i = 0; i < rowFields.length; i++) {
         try {
           const row = rows.nth(i);
           if (!(await row.isVisible().catch(() => false))) continue;
+          const fields = rowFields[i];
+          if (!fields || !shouldParseChatRow(fields, itemsByKey)) continue;
 
           const item = await parseChatRow(row, i);
           if (itemsByKey.has(item.chatKey)) continue;

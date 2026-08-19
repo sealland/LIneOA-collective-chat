@@ -25,6 +25,17 @@ function assert(cond: unknown, msg: string): void {
   assert(r.senderType === 'AUTO_REPLY', `expected AUTO_REPLY got ${r.senderType}`);
 }
 
+// Friend welcome wording is an automatic reply even without DOM hints.
+{
+  const r = classifyMessage({
+    direction: 'OUTBOUND',
+    preview: '❤️ ขอบคุณที่เป็นเพื่อนกับ ZUBB STEEL ❤️',
+    senderName: null,
+    className: 'chat-item outbound',
+  });
+  assert(r.senderType === 'AUTO_REPLY', `expected welcome AUTO_REPLY got ${r.senderType}`);
+}
+
 // Employee outbound
 {
   const r = classifyMessage({

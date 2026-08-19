@@ -7,6 +7,7 @@ import {
   type ConversationRow,
 } from '../lib/api';
 import { formatAppDateTime, businessDateFromIso } from '../lib/dateTime';
+import { dateRangeQuery } from '../lib/dateRange';
 import { compareMessagesByTimeline } from '../lib/messageOrder';
 import { ConcernBadge, ErrorBox, Loading } from './Shell';
 import { useI18n } from '../lib/i18n';
@@ -17,7 +18,8 @@ const SLOW_WAIT_MINUTES = 15;
 const VERY_SLOW_WAIT_MINUTES = 60;
 
 type Props = {
-  date: string;
+  from: string;
+  to: string;
   chatKey: string | null;
   preview: ConversationRow | null;
   onClose: () => void;
@@ -44,7 +46,8 @@ function waitLevel(minutes: number): WaitLevel | null {
 
 function buildMessageWaitMeta(
   messages: ConversationDetail['messages'],
-  businessDate: string
+  from: string,
+  to: string
 ): {
   byId: Map<number, MessageWaitMeta>;
   openWait: { waitMinutes: number; level: WaitLevel } | null;
@@ -80,7 +83,7 @@ function buildMessageWaitMeta(
     if (!Number.isFinite(t)) continue;
 
     const msgDay = businessDateFromIso(m.messageTime!);
-    if (msgDay !== businessDate) {
+    if (msgDay < from || msgDay > to) {
       if (isCustomer || isEmployee) clearPending();
       continue;
     }
@@ -167,7 +170,7 @@ function formatMessageBody(
   return labels.msgFile;
 }
 
-export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Props) {
+export function ConversationDetailPanel({ from, to, chatKey, preview, onClose }: Props) {
   const { t } = useI18n();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -179,8 +182,8 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
 
   const waitMeta = useMemo(() => {
     const ordered = [...(data?.messages ?? [])].sort(compareMessagesByTimeline);
-    return buildMessageWaitMeta(ordered, date);
-  }, [data?.messages, date]);
+    return buildMessageWaitMeta(ordered, from, to);
+  }, [data?.messages, from, to]);
 
   const displayMessages = useMemo(() => {
     return [...(data?.messages ?? [])].sort(compareMessagesByTimeline);
@@ -195,7 +198,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const url = `/api/conversation?date=${encodeURIComponent(date)}&chatKey=${encodeURIComponent(chatKey)}`;
+    const url = `/api/conversation?${dateRangeQuery(from, to)}&chatKey=${encodeURIComponent(chatKey)}`;
     fetchJson<ConversationDetail>(url)
       .then((d) => {
         if (!cancelled) setData(d);
@@ -209,7 +212,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
     return () => {
       cancelled = true;
     };
-  }, [chatKey, date]);
+  }, [chatKey, from, to]);
 
   useEffect(() => {
     if (!open) return;
@@ -275,7 +278,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
             <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--muted)] uppercase">
               {t.conversation}
             </p>
-            <h2 id={titleId} className="font-display mt-1 break-words text-2xl leading-tight text-[var(--ink)]">
+            <h2 id={titleId} className="font-display mt-1 break-words text-xl leading-tight text-[var(--ink)]">
               {summary?.customerName || t.noName}
             </h2>
             <p className="font-mono mt-1 max-h-10 overflow-y-auto break-all text-[11px] leading-snug text-[var(--muted)]">
@@ -344,7 +347,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
           ) : null}
 
           <section className="drawer-section">
-            <h3 className="font-display text-xl">{t.tags}</h3>
+            <h3 className="font-display text-base">{t.tags}</h3>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {(summary?.tags?.length ?? 0) === 0 ? (
                 <span className="text-sm text-[var(--muted)]">{t.noTags}</span>
@@ -362,7 +365,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
           </section>
 
           <section className="drawer-section">
-            <h3 className="font-display text-xl">{t.notes}</h3>
+            <h3 className="font-display text-base">{t.notes}</h3>
             {data && data.notes.length > 0 ? (
               <ul className="mt-2 space-y-2">
                 {data.notes.map((n, i) => (
@@ -382,7 +385,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
           </section>
 
           <section className="drawer-section">
-            <h3 className="font-display text-xl">{t.sessionsToday}</h3>
+            <h3 className="font-display text-base">{t.sessionsToday}</h3>
             {!data || data.sessions.length === 0 ? (
               <p className="mt-2 text-sm text-[var(--muted)]">{t.noSessions}</p>
             ) : (
@@ -425,7 +428,7 @@ export function ConversationDetailPanel({ date, chatKey, preview, onClose }: Pro
           </section>
 
           <section className="drawer-section">
-            <h3 className="font-display text-xl">{t.collectedMessages}</h3>
+            <h3 className="font-display text-base">{t.collectedMessages}</h3>
             {data?.messageNote ? (
               <p className="drawer-callout mt-2">{data.messageNote}</p>
             ) : null}

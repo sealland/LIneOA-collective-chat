@@ -7,6 +7,8 @@ import {
   coerceCollectorFinishedIso,
   toIso,
 } from '../../utils/dateTime.js';
+import type { DateRange } from '../../utils/dateRange.js';
+import { isNewCustomerWelcomeMessage } from '../../utils/newCustomer.js';
 import { countUnreadRoomsForBusinessDate } from './kpiRepository.js';
 import {
   DET_LATEST_CTE,
@@ -17,9 +19,10 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-function dayBounds(businessDate: string) {
-  const start = dayjs.tz(`${businessDate}T00:00:00`, config.TIMEZONE);
-  return { start: start.toDate(), end: start.add(1, 'day').toDate() };
+function rangeBounds(range: DateRange) {
+  const start = dayjs.tz(`${range.from}T00:00:00`, config.TIMEZONE);
+  const end = dayjs.tz(`${range.to}T00:00:00`, config.TIMEZONE).add(1, 'day');
+  return { start: start.toDate(), end: end.toDate() };
 }
 
 export type TopWaitingRoomDto = {
@@ -42,8 +45,18 @@ export type ReportOverviewDto = {
   } | null;
 };
 
+export type LongestWaitingRoomDto = {
+  chatKey: string;
+  customerName: string | null;
+  waitingMinutes: number;
+  lastMessagePreview: string | null;
+  assignedAgent: string | null;
+};
+
 export type OverviewDto = {
   businessDate: string;
+  fromDate: string;
+  toDate: string;
   kpi: {
     totalSessions: number;
     answeredSessions: number;
@@ -63,6 +76,7 @@ export type OverviewDto = {
   oldestUnreadMinutes: number | null;
   oldestUnreadChatKey: string | null;
   oldestUnreadCustomerName: string | null;
+  longestWaitingRoom: LongestWaitingRoomDto | null;
   unassignedRooms: number;
   roomsWithoutTag: number;
   roomsWithoutNote: number;
@@ -94,6 +108,7 @@ export type EmployeeRowDto = {
 export type ConversationRowDto = {
   chatKey: string;
   customerName: string | null;
+  isNewCustomer: boolean;
   lastMessagePreview: string | null;
   lastMessageTime: string | null;
   isUnread: boolean;
@@ -114,9 +129,12 @@ export type ConversationRowDto = {
 
 export type QualityDto = {
   businessDate: string;
+  fromDate: string;
+  toDate: string;
   discoveredRooms: number;
   readRoomsInspected: number;
   unreadRoomsSkipped: number;
+  identityRenamedRooms: number;
   failedRooms: number;
   messagesCollected: number;
   roomsWithoutTag: number;
@@ -154,6 +172,11 @@ function percentile(sorted: number[], p: number): number | null {
   return sorted[Math.max(0, Math.min(sorted.length - 1, idx))] ?? null;
 }
 
+function mean(nums: number[]): number | null {
+  if (nums.length === 0) return null;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
 function concernFromSla(slaPct: number | null, median: number | null): 'OK' | 'WATCH' | 'ALERT' {
   // slaPct is a 0–1 ratio
   if (slaPct != null && slaPct < 0.5) return 'ALERT';
@@ -164,7 +187,7 @@ function concernFromSla(slaPct: number | null, median: number | null): 'OK' | 'W
 
 async function buildReportOverview(
   pool: Awaited<ReturnType<typeof getPool>>,
-  businessDate: string,
+  range: DateRange,
   start: Date,
   end: Date,
   fallbackKpi: OverviewDto['kpi'],
@@ -215,7 +238,8 @@ async function buildReportOverview(
         `),
       pool
         .request()
-        .input('business_date', sql.Date, businessDate)
+        .input('from', sql.Date, range.from)
+        .input('to', sql.Date, range.to)
         .input('start', sql.DateTime2, start)
         .input('end', sql.DateTime2, end)
         .query<{ customer_name: string | null; waiting_minutes: number }>(`
@@ -226,7 +250,7 @@ async function buildReportOverview(
           FROM response_sessions rs
           LEFT JOIN chat_conversations c ON c.chat_key = rs.chat_key
           LEFT JOIN det ON det.chat_key = rs.chat_key AND det.rn = 1
-          WHERE rs.business_date = @business_date
+          WHERE rs.business_date >= @from AND rs.business_date <= @to
             AND rs.session_status = N'WAITING'
             AND rs.first_inbound_at IS NOT NULL
             AND rs.inbound_time_confidence IN (N'MEDIUM', N'HIGH')
@@ -235,7 +259,8 @@ async function buildReportOverview(
         `),
       pool
         .request()
-        .input('business_date', sql.Date, businessDate)
+        .input('from', sql.Date, range.from)
+        .input('to', sql.Date, range.to)
         .input('start', sql.DateTime2, start)
         .input('end', sql.DateTime2, end)
         .input('sla_minutes', sql.Int, slaMinutes)
@@ -265,7 +290,7 @@ async function buildReportOverview(
           FROM response_sessions rs
           LEFT JOIN chat_conversations c ON c.chat_key = rs.chat_key
           LEFT JOIN det ON det.chat_key = rs.chat_key AND det.rn = 1
-          WHERE rs.business_date = @business_date
+          WHERE rs.business_date >= @from AND rs.business_date <= @to
             AND ${includeRoom}
         `),
       pool
@@ -290,7 +315,8 @@ async function buildReportOverview(
         `),
       pool
         .request()
-        .input('business_date', sql.Date, businessDate)
+        .input('from', sql.Date, range.from)
+        .input('to', sql.Date, range.to)
         .input('start', sql.DateTime2, start)
         .input('end', sql.DateTime2, end)
         .query<{ max_waiting_minutes: number | null }>(`
@@ -299,7 +325,7 @@ async function buildReportOverview(
           FROM response_sessions rs
           LEFT JOIN chat_conversations c ON c.chat_key = rs.chat_key
           LEFT JOIN det ON det.chat_key = rs.chat_key AND det.rn = 1
-          WHERE rs.business_date = @business_date
+          WHERE rs.business_date >= @from AND rs.business_date <= @to
             AND rs.session_status = N'WAITING'
             AND rs.first_inbound_at IS NOT NULL
             AND rs.inbound_time_confidence IN (N'MEDIUM', N'HIGH')
@@ -362,38 +388,76 @@ async function buildReportOverview(
   };
 }
 
-export async function getOverview(businessDate: string): Promise<OverviewDto> {
+export async function getOverview(range: DateRange): Promise<OverviewDto> {
   const pool = await getPool();
-  const { start, end } = dayBounds(businessDate);
+  const { start, end } = rangeBounds(range);
 
-  const [summaryRes, frtRes, waitingAgeRes, activeRes, unreadAgeRes, detailGapsRes, runRes, liveUnread] =
+  const [summaryRes, sessionAggRes, frtRes, waitingAgeRes, activeRes, unreadAgeRes, detailGapsRes, runRes, liveUnread] =
     await Promise.all([
     pool
       .request()
-      .input('business_date', sql.Date, businessDate)
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
+      .query<{
+        day_count: number;
+        total_sessions: number | null;
+        answered_sessions: number | null;
+        waiting_sessions: number | null;
+        official_answered_sessions: number | null;
+        within_sla_count: number | null;
+        max_waiting_minutes: number | null;
+        computed_at: Date | null;
+      }>(`
+        SELECT
+          COUNT(*) AS day_count,
+          SUM(total_sessions) AS total_sessions,
+          SUM(answered_sessions) AS answered_sessions,
+          SUM(waiting_sessions) AS waiting_sessions,
+          SUM(official_answered_sessions) AS official_answered_sessions,
+          SUM(within_sla_count) AS within_sla_count,
+          MAX(max_waiting_minutes) AS max_waiting_minutes,
+          MAX(computed_at) AS computed_at
+        FROM daily_kpi_summary
+        WHERE business_date >= @from AND business_date <= @to
+      `),
+    pool
+      .request()
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
+      .input('sla_minutes', sql.Int, config.SLA_MINUTES)
       .query<{
         total_sessions: number;
         answered_sessions: number;
         waiting_sessions: number;
         official_answered_sessions: number;
-        avg_frt_minutes: number | null;
-        median_frt_minutes: number | null;
         within_sla_count: number;
-        unread_rooms: number | null;
-        max_waiting_minutes: number | null;
-        computed_at: Date;
       }>(`
-        SELECT TOP 1 *
-        FROM daily_kpi_summary
-        WHERE business_date = @business_date
+        SELECT
+          COUNT(*) AS total_sessions,
+          SUM(CASE WHEN session_status = N'ANSWERED' THEN 1 ELSE 0 END) AS answered_sessions,
+          SUM(CASE WHEN session_status = N'WAITING' THEN 1 ELSE 0 END) AS waiting_sessions,
+          SUM(CASE WHEN official_eligible = 1 THEN 1 ELSE 0 END) AS official_answered_sessions,
+          SUM(
+            CASE
+              WHEN official_eligible = 1
+                AND frt_valid = 1
+                AND frt_minutes IS NOT NULL
+                AND frt_minutes <= @sla_minutes
+              THEN 1
+              ELSE 0
+            END
+          ) AS within_sla_count
+        FROM response_sessions
+        WHERE business_date >= @from AND business_date <= @to
       `),
     pool
       .request()
-      .input('business_date', sql.Date, businessDate)
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
       .query<{ frt_minutes: number }>(`
         SELECT frt_minutes
         FROM response_sessions
-        WHERE business_date = @business_date
+        WHERE business_date >= @from AND business_date <= @to
           AND official_eligible = 1
           AND frt_valid = 1
           AND frt_minutes IS NOT NULL
@@ -401,14 +465,43 @@ export async function getOverview(businessDate: string): Promise<OverviewDto> {
       `),
     pool
       .request()
-      .input('business_date', sql.Date, businessDate)
-      .query<{ max_waiting_minutes: number | null }>(`
-        SELECT MAX(DATEDIFF(MINUTE, first_inbound_at, SYSUTCDATETIME())) AS max_waiting_minutes
-        FROM response_sessions
-        WHERE business_date = @business_date
-          AND session_status = N'WAITING'
-          AND first_inbound_at IS NOT NULL
-          AND inbound_time_confidence IN (N'MEDIUM', N'HIGH')
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
+      .query<{
+        chat_key: string;
+        customer_name: string | null;
+        waiting_minutes: number;
+        last_message_preview: string | null;
+        assigned_agent: string | null;
+      }>(`
+        SELECT TOP 1
+          rs.chat_key,
+          c.customer_name,
+          DATEDIFF(MINUTE, rs.first_inbound_at, SYSUTCDATETIME()) AS waiting_minutes,
+          snap.last_message_preview,
+          COALESCE(
+            NULLIF(LTRIM(RTRIM(det.assigned_agent)), N''),
+            NULLIF(LTRIM(RTRIM(snap.visible_assigned_agent)), N'')
+          ) AS assigned_agent
+        FROM response_sessions rs
+        LEFT JOIN chat_conversations c ON c.chat_key = rs.chat_key
+        OUTER APPLY (
+          SELECT TOP 1 last_message_preview, visible_assigned_agent
+          FROM chat_snapshots s
+          WHERE s.chat_key = rs.chat_key
+          ORDER BY s.captured_at DESC
+        ) snap
+        OUTER APPLY (
+          SELECT TOP 1 assigned_agent
+          FROM conversation_details d
+          WHERE d.chat_key = rs.chat_key
+          ORDER BY d.captured_at DESC
+        ) det
+        WHERE rs.business_date >= @from AND rs.business_date <= @to
+          AND rs.session_status = N'WAITING'
+          AND rs.first_inbound_at IS NOT NULL
+          AND rs.inbound_time_confidence IN (N'MEDIUM', N'HIGH')
+        ORDER BY waiting_minutes DESC
       `),
     pool
       .request()
@@ -486,52 +579,83 @@ export async function getOverview(businessDate: string): Promise<OverviewDto> {
       FROM collector_runs
       ORDER BY started_at DESC
     `),
-    countUnreadRoomsForBusinessDate(businessDate, config.TIMEZONE),
+    countUnreadRoomsForBusinessDate(range.to, config.TIMEZONE),
   ]);
 
-  const s = summaryRes.recordset[0] ?? null;
+  const summary = summaryRes.recordset[0] ?? null;
+  const sessionAgg = sessionAggRes.recordset[0] ?? null;
+  const summaryDays = Number(summary?.day_count ?? 0);
+  const sessionTotal = Number(sessionAgg?.total_sessions ?? 0);
+  const hasSummary = summaryDays > 0;
+  const hasSessions = sessionTotal > 0;
+
+  const totalSessions = hasSessions
+    ? sessionTotal
+    : hasSummary
+      ? Number(summary?.total_sessions ?? 0)
+      : 0;
+  const answeredSessions = hasSessions
+    ? Number(sessionAgg?.answered_sessions ?? 0)
+    : Number(summary?.answered_sessions ?? 0);
+  const waitingSessions = hasSessions
+    ? Number(sessionAgg?.waiting_sessions ?? 0)
+    : Number(summary?.waiting_sessions ?? 0);
+  const officialAnsweredSessions = hasSessions
+    ? Number(sessionAgg?.official_answered_sessions ?? 0)
+    : Number(summary?.official_answered_sessions ?? 0);
+  const withinSlaCount = hasSessions
+    ? Number(sessionAgg?.within_sla_count ?? 0)
+    : Number(summary?.within_sla_count ?? 0);
+
   const frts = frtRes.recordset.map((r) => Number(r.frt_minutes)).sort((a, b) => a - b);
   const p90 = percentile(frts, 90);
   const gaps = detailGapsRes.recordset[0];
   const run = runRes.recordset[0] ?? null;
-  const liveMaxWaiting = waitingAgeRes.recordset[0]?.max_waiting_minutes;
-  const maxWaitingMinutes =
-    liveMaxWaiting != null
-      ? Number(liveMaxWaiting)
-      : s?.max_waiting_minutes != null
-        ? Number(s.max_waiting_minutes)
-        : null;
-
-  const responseRate =
-    s && s.total_sessions > 0 ? s.answered_sessions / s.total_sessions : null;
-  const slaPct =
-    s && s.official_answered_sessions > 0
-      ? s.within_sla_count / s.official_answered_sessions
-      : null;
-
-  const kpi = s
+  const longestRow = waitingAgeRes.recordset[0] ?? null;
+  const longestWaitingRoom = longestRow
     ? {
-        totalSessions: s.total_sessions,
-        answeredSessions: s.answered_sessions,
-        waitingSessions: s.waiting_sessions,
-        officialAnsweredSessions: s.official_answered_sessions,
-        avgFrtMinutes: s.avg_frt_minutes,
-        medianFrtMinutes: s.median_frt_minutes,
-        p90FrtMinutes: p90,
-        withinSlaCount: s.within_sla_count,
-        responseRate,
-        slaPct,
-        unreadRooms: liveUnread,
-        maxWaitingMinutes,
-        computedAt: s.computed_at ? toIso(new Date(s.computed_at)) : null,
+        chatKey: longestRow.chat_key,
+        customerName: longestRow.customer_name,
+        waitingMinutes: Number(longestRow.waiting_minutes),
+        lastMessagePreview: longestRow.last_message_preview,
+        assignedAgent: longestRow.assigned_agent,
       }
     : null;
+  const maxWaitingMinutes =
+    longestWaitingRoom != null
+      ? longestWaitingRoom.waitingMinutes
+      : summary?.max_waiting_minutes != null
+        ? Number(summary.max_waiting_minutes)
+        : null;
+
+  const responseRate = totalSessions > 0 ? answeredSessions / totalSessions : null;
+  const slaPct =
+    officialAnsweredSessions > 0 ? withinSlaCount / officialAnsweredSessions : null;
+
+  const kpi =
+    hasSummary || hasSessions
+      ? {
+          totalSessions,
+          answeredSessions,
+          waitingSessions,
+          officialAnsweredSessions,
+          avgFrtMinutes: mean(frts),
+          medianFrtMinutes: percentile(frts, 50),
+          p90FrtMinutes: p90,
+          withinSlaCount,
+          responseRate,
+          slaPct,
+          unreadRooms: liveUnread,
+          maxWaitingMinutes,
+          computedAt: summary?.computed_at ? toIso(new Date(summary.computed_at)) : null,
+        }
+      : null;
 
   const activeConversations = Number(activeRes.recordset[0]?.cnt ?? 0);
 
   const report = await buildReportOverview(
     pool,
-    businessDate,
+    range,
     start,
     end,
     kpi,
@@ -539,12 +663,15 @@ export async function getOverview(businessDate: string): Promise<OverviewDto> {
   );
 
   return {
-    businessDate,
+    businessDate: range.to,
+    fromDate: range.from,
+    toDate: range.to,
     kpi,
     activeConversations,
     oldestUnreadMinutes: unreadAgeRes.recordset[0]?.oldest_minutes ?? null,
     oldestUnreadChatKey: unreadAgeRes.recordset[0]?.chat_key ?? null,
     oldestUnreadCustomerName: unreadAgeRes.recordset[0]?.customer_name ?? null,
+    longestWaitingRoom,
     unassignedRooms: Number(gaps?.unassigned ?? 0),
     roomsWithoutTag: Number(gaps?.no_tag ?? 0),
     roomsWithoutNote: Number(gaps?.no_note ?? 0),
@@ -565,25 +692,29 @@ export async function getOverview(businessDate: string): Promise<OverviewDto> {
   };
 }
 
-export async function getEmployees(businessDate: string): Promise<EmployeeRowDto[]> {
+export async function getEmployees(range: DateRange): Promise<EmployeeRowDto[]> {
   const pool = await getPool();
-  const { start, end } = dayBounds(businessDate);
+  const { start, end } = rangeBounds(range);
 
   const [empRes, msgRes, p90Res] = await Promise.all([
     pool
       .request()
-      .input('business_date', sql.Date, businessDate)
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
       .query<{
         employee_name: string;
         answered_sessions: number;
         official_answered_sessions: number;
-        avg_frt_minutes: number | null;
-        median_frt_minutes: number | null;
         within_sla_count: number;
       }>(`
-        SELECT *
+        SELECT
+          employee_name,
+          SUM(answered_sessions) AS answered_sessions,
+          SUM(official_answered_sessions) AS official_answered_sessions,
+          SUM(within_sla_count) AS within_sla_count
         FROM daily_employee_kpi
-        WHERE business_date = @business_date
+        WHERE business_date >= @from AND business_date <= @to
+        GROUP BY employee_name
         ORDER BY official_answered_sessions DESC, answered_sessions DESC
       `),
     pool
@@ -600,11 +731,12 @@ export async function getEmployees(businessDate: string): Promise<EmployeeRowDto
       `),
     pool
       .request()
-      .input('business_date', sql.Date, businessDate)
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
       .query<{ attributed_employee: string; frt_minutes: number }>(`
         SELECT attributed_employee, frt_minutes
         FROM response_sessions
-        WHERE business_date = @business_date
+        WHERE business_date >= @from AND business_date <= @to
           AND official_eligible = 1
           AND frt_valid = 1
           AND frt_minutes IS NOT NULL
@@ -629,27 +761,28 @@ export async function getEmployees(businessDate: string): Promise<EmployeeRowDto
       employeeName: r.employee_name,
       answeredSessions: r.answered_sessions,
       officialAnsweredSessions: official,
-      avgFrtMinutes: r.avg_frt_minutes,
-      medianFrtMinutes: r.median_frt_minutes,
+      avgFrtMinutes: mean(frts),
+      medianFrtMinutes: percentile(frts, 50),
       p90FrtMinutes: percentile(frts, 90),
       withinSlaCount: r.within_sla_count,
       slaPct,
       messagesSent: msgMap.get(r.employee_name) ?? 0,
       firstResponses: r.answered_sessions,
-      concernLevel: concernFromSla(slaPct, r.median_frt_minutes),
+      concernLevel: concernFromSla(slaPct, percentile(frts, 50)),
     };
   });
 }
 
-export async function getConversations(businessDate: string): Promise<ConversationRowDto[]> {
+export async function getConversations(range: DateRange): Promise<ConversationRowDto[]> {
   const pool = await getPool();
-  const { start, end } = dayBounds(businessDate);
+  const { start, end } = rangeBounds(range);
 
   const result = await pool
     .request()
     .input('start', sql.DateTime2, start)
     .input('end', sql.DateTime2, end)
-    .input('business_date', sql.Date, businessDate)
+    .input('from', sql.Date, range.from)
+    .input('to', sql.Date, range.to)
     .query<{
       chat_key: string;
       customer_name: string | null;
@@ -669,6 +802,7 @@ export async function getConversations(businessDate: string): Promise<Conversati
       frt_minutes: number | null;
       waiting_minutes: number | null;
       session_status: string | null;
+      welcome_message_preview: string | null;
     }>(`
       ;WITH snap AS (
         SELECT
@@ -692,7 +826,7 @@ export async function getConversations(businessDate: string): Promise<Conversati
             ORDER BY rs.session_index DESC
           ) AS rn
         FROM response_sessions rs
-        WHERE rs.business_date = @business_date
+        WHERE rs.business_date >= @from AND rs.business_date <= @to
       ),
       last_answered AS (
         SELECT
@@ -703,7 +837,7 @@ export async function getConversations(businessDate: string): Promise<Conversati
             ORDER BY rs.session_index DESC
           ) AS rn
         FROM response_sessions rs
-        WHERE rs.business_date = @business_date
+        WHERE rs.business_date >= @from AND rs.business_date <= @to
           AND rs.session_status = N'ANSWERED'
           AND rs.attributed_employee IS NOT NULL
           AND LTRIM(RTRIM(rs.attributed_employee)) <> N''
@@ -726,10 +860,23 @@ export async function getConversations(businessDate: string): Promise<Conversati
           AND m.sender_name IS NOT NULL
           AND LTRIM(RTRIM(m.sender_name)) <> N''
           AND m.sender_name <> N'UNKNOWN_EMPLOYEE'
+      ),
+      welcome_message AS (
+        SELECT
+          m.chat_key,
+          m.message_preview,
+          ROW_NUMBER() OVER (
+            PARTITION BY m.chat_key
+            ORDER BY m.message_time, m.id
+          ) AS rn
+        FROM chat_messages m
+        WHERE m.message_time >= @start AND m.message_time < @end
+          AND m.message_preview LIKE N'%ขอบคุณ%เป็นเพื่อน%กับ%'
       )
       SELECT
         snap.chat_key,
         c.customer_name,
+        welcome_message.message_preview AS welcome_message_preview,
         snap.last_message_preview,
         snap.last_message_time,
         snap.is_unread,
@@ -762,6 +909,8 @@ export async function getConversations(businessDate: string): Promise<Conversati
       LEFT JOIN sess ON sess.chat_key = snap.chat_key AND sess.rn = 1
       LEFT JOIN last_answered ON last_answered.chat_key = snap.chat_key AND last_answered.rn = 1
       LEFT JOIN last_msg_emp ON last_msg_emp.chat_key = snap.chat_key AND last_msg_emp.rn = 1
+      LEFT JOIN welcome_message
+        ON welcome_message.chat_key = snap.chat_key AND welcome_message.rn = 1
       WHERE snap.rn = 1
       ORDER BY snap.is_unread DESC, snap.captured_at DESC
     `);
@@ -804,6 +953,7 @@ export async function getConversations(businessDate: string): Promise<Conversati
     return {
       chatKey: r.chat_key,
       customerName: r.customer_name,
+      isNewCustomer: isNewCustomerWelcomeMessage(r.welcome_message_preview),
       lastMessagePreview: r.last_message_preview,
       lastMessageTime: r.last_message_time,
       isUnread,
@@ -828,6 +978,8 @@ export async function getConversations(businessDate: string): Promise<Conversati
 
 export type ConversationDetailDto = {
   businessDate: string;
+  fromDate: string;
+  toDate: string;
   summary: ConversationRowDto;
   notes: string[];
   chatStatus: string | null;
@@ -879,13 +1031,13 @@ function parseNotesList(noteText: string | null, notesJson: string | null): stri
 }
 
 export async function getConversationDetail(
-  businessDate: string,
+  range: DateRange,
   chatKey: string
 ): Promise<ConversationDetailDto | null> {
   const pool = await getPool();
-  const { start, end } = dayBounds(businessDate);
+  const { start, end } = rangeBounds(range);
 
-  const list = await getConversations(businessDate);
+  const list = await getConversations(range);
   const summary = list.find((c) => c.chatKey === chatKey);
   if (!summary) return null;
 
@@ -912,7 +1064,8 @@ export async function getConversationDetail(
     pool
       .request()
       .input('chat_key', sql.NVarChar(512), chatKey)
-      .input('business_date', sql.Date, businessDate)
+      .input('from', sql.Date, range.from)
+      .input('to', sql.Date, range.to)
       .query<{
         session_index: number;
         first_inbound_at: Date;
@@ -926,8 +1079,8 @@ export async function getConversationDetail(
           session_index, first_inbound_at, first_outbound_at,
           frt_minutes, session_status, attributed_employee, official_eligible
         FROM response_sessions
-        WHERE business_date = @business_date AND chat_key = @chat_key
-        ORDER BY session_index
+        WHERE business_date >= @from AND business_date <= @to AND chat_key = @chat_key
+        ORDER BY business_date, session_index
       `),
     pool
       .request()
@@ -997,7 +1150,9 @@ export async function getConversationDetail(
   }));
 
   return {
-    businessDate,
+    businessDate: range.to,
+    fromDate: range.from,
+    toDate: range.to,
     summary: {
       ...summary,
       tags: summary.tags,
@@ -1021,11 +1176,11 @@ export async function getConversationDetail(
   };
 }
 
-export async function getQuality(businessDate: string): Promise<QualityDto> {
+export async function getQuality(range: DateRange): Promise<QualityDto> {
   const pool = await getPool();
-  const { start, end } = dayBounds(businessDate);
+  const { start, end } = rangeBounds(range);
 
-  const [runsRes, gapRes, empDetectRes, successRes] = await Promise.all([
+  const [runsRes, gapRes, empDetectRes, identityRenamesRes, successRes] = await Promise.all([
     pool
       .request()
       .input('start', sql.DateTime2, start)
@@ -1078,6 +1233,18 @@ export async function getQuality(businessDate: string): Promise<QualityDto> {
         FROM chat_messages
         WHERE sender_type = N'EMPLOYEE'
           AND message_time >= @start AND message_time < @end
+      `),
+    pool
+      .request()
+      .input('start', sql.DateTime2, start)
+      .input('end', sql.DateTime2, end)
+      .query<{ identity_renamed_rooms: number }>(`
+        SELECT
+          COUNT(DISTINCT old_chat_key) AS identity_renamed_rooms
+        FROM chat_key_aliases
+        WHERE merged_at >= @start
+          AND merged_at < @end
+          AND old_chat_key <> new_chat_key
       `),
     pool.request().query<{
       id: number;
@@ -1149,10 +1316,13 @@ export async function getQuality(businessDate: string): Promise<QualityDto> {
       : null;
 
   return {
-    businessDate,
+    businessDate: range.to,
+    fromDate: range.from,
+    toDate: range.to,
     ...totals,
     roomsWithoutTag: Number(gapRes.recordset[0]?.no_tag ?? 0),
     roomsWithoutNote: Number(gapRes.recordset[0]?.no_note ?? 0),
+    identityRenamedRooms: Number(identityRenamesRes.recordset[0]?.identity_renamed_rooms ?? 0),
     employeeNameDetection: {
       knownEmployeeMessages: known,
       unknownEmployeeMessages: unknown,
@@ -1174,7 +1344,7 @@ export async function getQuality(businessDate: string): Promise<QualityDto> {
   };
 }
 
-export async function listAvailableDates(limit = 30): Promise<string[]> {
+export async function listAvailableDates(limit = 90): Promise<string[]> {
   const pool = await getPool();
   const result = await pool.request().input('limit', sql.Int, limit).query<{ d: Date }>(`
     SELECT TOP (@limit) business_date AS d

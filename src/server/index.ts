@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { config } from '../config/index.js';
 import { closePool, isDatabaseConfigured } from '../database/connection.js';
 import { createApiRouter } from './routes/api.js';
+import { startNightCollectWorker } from '../services/nightCollectWorker.js';
 import { createModuleLogger } from '../logger/index.js';
 
 const log = createModuleLogger('server');
@@ -43,8 +44,11 @@ async function main() {
     });
   });
 
+  const stopNightCollect = startNightCollectWorker();
+
   const shutdown = async () => {
     log.info('Shutting down…');
+    stopNightCollect();
     server.close();
     await closePool();
     process.exit(0);

@@ -24,6 +24,8 @@ export type ChatRowFields = {
   href: string | null;
   elementId: string;
   profileId: string | null;
+  previewText: string;
+  timeText: string;
 };
 
 /**
@@ -54,6 +56,15 @@ export async function readChatRowFields(rows: Locator): Promise<ChatRowFields[]>
           : el.querySelector('a')?.getAttribute('href')) ?? null,
       elementId: el.id,
       profileId: el.getAttribute('data-profile-id') ?? el.getAttribute('data-user-id'),
+      previewText:
+        el.querySelector('div.text-muted.small.text-truncate.text-truncate-box')?.textContent?.trim() ??
+        el.querySelector('.text-muted.text-truncate-box')?.textContent?.trim() ??
+        '',
+      timeText:
+        el.querySelector('div.datetime')?.textContent?.trim() ??
+        el.querySelector('.datetime.text-right')?.textContent?.trim() ??
+        el.querySelector('.datetime')?.textContent?.trim() ??
+        '',
     }))
   );
 }
@@ -80,6 +91,18 @@ export function deriveChatKey(fields: ChatRowFields): string | null {
   if (fields.profileId) candidates.push(`profile:${fields.profileId}`);
 
   return candidates[0] ?? null;
+}
+
+/**
+ * A stable row already collected in this pass does not need expensive full parsing.
+ * Rows without a stable key must still be parsed so fallback identity remains intact.
+ */
+export function shouldParseChatRow(
+  fields: ChatRowFields,
+  knownKeys: Pick<ReadonlySet<string>, 'has'>
+): boolean {
+  const stableKey = deriveChatKey(fields);
+  return stableKey === null || !knownKeys.has(stableKey);
 }
 
 /**

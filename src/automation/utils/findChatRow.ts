@@ -2,7 +2,12 @@ import type { Locator, Page } from 'playwright';
 import { createModuleLogger } from '../../logger/index.js';
 import { findAllMatching } from '../selectors/selectorAdapter.js';
 import { deriveChatKey, readChatRowFields } from '../collectors/chatRowParser.js';
-import { chatKeyDisplayName, chatKeysMatch, displayNamesMatch } from './chatKey.js';
+import { chatKeyDisplayName } from './chatKey.js';
+import {
+  matchStoredRoomToList,
+  type ListRoomProbe,
+  type StoredRoomProbe,
+} from './roomIdentity.js';
 import { resolveScrollContainer } from './virtualScroll.js';
 import { config } from '../../config/index.js';
 
@@ -13,12 +18,13 @@ export type FindChatRowOptions = {
   scroll?: boolean;
   /** Display name used as fallback match when the stored key is a placeholder avatar. */
   customerName?: string | null;
+  nameAliases?: string[];
+  lastMessagePreview?: string | null;
+  lastMessageTime?: string | null;
 };
 
-export type ChatRowEntry = {
+export type ChatRowEntry = ListRoomProbe & {
   index: number;
-  chatKey: string;
-  displayName: string | null;
 };
 
 /**
@@ -28,9 +34,12 @@ export type ChatRowEntry = {
  */
 export type ChatListIndex = {
   size: number;
+  probes(): ListRoomProbe[];
   /** Cheap check against the last scan — no row verification. */
   has(chatKey: string, customerName?: string | null): boolean;
+  hasProbe(stored: StoredRoomProbe): boolean;
   find(chatKey: string, customerName?: string | null): Promise<Locator | null>;
+  findProbe(stored: StoredRoomProbe): Promise<Locator | null>;
   refresh(): Promise<number>;
 };
 
@@ -46,26 +55,18 @@ async function getChatRows(page: Page): Promise<Locator | null> {
   return match?.locator ?? null;
 }
 
-function expectedDisplayName(
+function toStoredProbe(
   chatKey: string,
-  customerName?: string | null
-): string | null {
-  return chatKeyDisplayName(chatKey) ?? customerName?.trim() ?? null;
-}
-
-/**
- * Placeholder keys cannot be compared by avatar token, so a display-name match is
- * allowed only when one of the two keys is a placeholder.
- */
-function entryMatches(
-  entry: ChatRowEntry,
-  targetChatKey: string,
-  expectedName: string | null
-): boolean {
-  if (chatKeysMatch(entry.chatKey, targetChatKey)) return true;
-  if (!expectedName) return false;
-  if (!chatKeyDisplayName(entry.chatKey) && !chatKeyDisplayName(targetChatKey)) return false;
-  return displayNamesMatch(entry.displayName, expectedName);
+  customerName?: string | null,
+  extra?: Pick<FindChatRowOptions, 'nameAliases' | 'lastMessagePreview' | 'lastMessageTime'>
+): StoredRoomProbe {
+  return {
+    chatKey,
+    displayName: customerName ?? chatKeyDisplayName(chatKey),
+    nameAliases: extra?.nameAliases ?? [],
+    lastMessagePreview: extra?.lastMessagePreview ?? null,
+    lastMessageTime: extra?.lastMessageTime ?? null,
+  };
 }
 
 async function scanRows(rows: Locator): Promise<ChatRowEntry[]> {
@@ -74,25 +75,30 @@ async function scanRows(rows: Locator): Promise<ChatRowEntry[]> {
   return fields.flatMap((f, index) => {
     const chatKey = deriveChatKey(f);
     if (!chatKey) return [];
-    return [{ index, chatKey, displayName: f.nameText || null }];
+    return [{
+      index,
+      chatKey,
+      displayName: f.nameText || null,
+      lastMessagePreview: f.previewText || null,
+      lastMessageTime: f.timeText || null,
+    }];
   });
 }
 
-async function rowStillMatches(
-  row: Locator,
-  entry: ChatRowEntry,
-  targetChatKey: string,
-  expectedName: string | null
-): Promise<boolean> {
+async function rowStillMatches(row: Locator, expectedListKey: string): Promise<boolean> {
   const [fields] = await readChatRowFields(row).catch(() => []);
   if (!fields) return false;
   const chatKey = deriveChatKey(fields);
   if (!chatKey) return false;
-  return entryMatches(
-    { index: entry.index, chatKey, displayName: fields.nameText || null },
-    targetChatKey,
-    expectedName
-  );
+  return matchStoredRoomToList(
+    { chatKey: expectedListKey, displayName: null, nameAliases: [], lastMessagePreview: null, lastMessageTime: null },
+    [{
+      chatKey,
+      displayName: fields.nameText || null,
+      lastMessagePreview: fields.previewText || null,
+      lastMessageTime: fields.timeText || null,
+    }]
+  ) !== null;
 }
 
 /**
@@ -193,15 +199,21 @@ export async function buildChatListIndex(page: Page): Promise<ChatListIndex | nu
     return entries.length;
   };
 
-  const resolve = async (
-    chatKey: string,
-    expectedName: string | null
-  ): Promise<Locator | null> => {
-    const entry = entries.find((e) => entryMatches(e, chatKey, expectedName));
+  const probes = (): ListRoomProbe[] =>
+    entries.map(({ chatKey, displayName, lastMessagePreview, lastMessageTime }) => ({
+      chatKey,
+      displayName,
+      lastMessagePreview,
+      lastMessageTime,
+    }));
+
+  const resolveProbe = async (stored: StoredRoomProbe): Promise<Locator | null> => {
+    const match = matchStoredRoomToList(stored, probes());
+    if (!match) return null;
+    const entry = entries.find((e) => e.chatKey === match.listChatKey);
     if (!entry) return null;
     const row = rows.nth(entry.index);
-    // The list re-sorts when new messages arrive, so cached positions can drift.
-    return (await rowStillMatches(row, entry, chatKey, expectedName)) ? row : null;
+    return (await rowStillMatches(row, match.listChatKey)) ? row : null;
   };
 
   await refresh();
@@ -211,17 +223,25 @@ export async function buildChatListIndex(page: Page): Promise<ChatListIndex | nu
       return entries.length;
     },
     refresh,
+    probes,
+    hasProbe(stored: StoredRoomProbe) {
+      return matchStoredRoomToList(stored, probes()) !== null;
+    },
     has(chatKey: string, customerName?: string | null) {
-      const expectedName = expectedDisplayName(chatKey, customerName);
-      return entries.some((e) => entryMatches(e, chatKey, expectedName));
+      return matchStoredRoomToList(toStoredProbe(chatKey, customerName), probes()) !== null;
+    },
+    async findProbe(stored: StoredRoomProbe) {
+      const hit = await resolveProbe(stored);
+      if (hit) return hit;
+      await refresh();
+      return resolveProbe(stored);
     },
     async find(chatKey: string, customerName?: string | null) {
-      const expectedName = expectedDisplayName(chatKey, customerName);
-      const hit = await resolve(chatKey, expectedName);
+      const stored = toStoredProbe(chatKey, customerName);
+      const hit = await resolveProbe(stored);
       if (hit) return hit;
-
       await refresh();
-      return resolve(chatKey, expectedName);
+      return resolveProbe(stored);
     },
   };
 }
@@ -238,7 +258,8 @@ export async function findChatRowByKey(
   const index = await buildChatListIndex(page);
   if (!index) return null;
 
-  const direct = await index.find(targetChatKey, options.customerName);
+  const stored = toStoredProbe(targetChatKey, options.customerName, options);
+  const direct = await index.findProbe(stored);
   if (direct) return direct;
 
   if (options.scroll === false) return null;
@@ -247,7 +268,7 @@ export async function findChatRowByKey(
   const expanded = await expandChatList(page, {
     reason: `find:${targetChatKey.slice(0, 32)}`,
     shouldStop: async () => {
-      state.found = await index.find(targetChatKey, options.customerName);
+      state.found = await index.findProbe(stored);
       return state.found !== null;
     },
   });

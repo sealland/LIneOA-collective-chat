@@ -5,7 +5,8 @@ const PIXEL_RATIO = 2;
 
 export async function exportSummaryImage(
   node: HTMLElement,
-  businessDate: string
+  fromDate: string,
+  toDate = fromDate
 ): Promise<void> {
   // Wait a frame so Recharts finishes layout inside the off-screen card.
   await new Promise<void>((resolve) => {
@@ -26,7 +27,8 @@ export async function exportSummaryImage(
   });
 
   const link = document.createElement('a');
-  link.download = `line-oa-daily-${businessDate}.png`;
+  const stamp = fromDate === toDate ? fromDate : `${fromDate}_to_${toDate}`;
+  link.download = `line-oa-daily-${stamp}.png`;
   link.href = dataUrl;
   link.click();
 }

@@ -2,8 +2,7 @@ import { getBackfillCandidates } from '../database/repositories/backfillReposito
 import { closePool } from '../database/connection.js';
 
 async function main() {
-  const discovered: string[] = [];
-  const c = await getBackfillCandidates(discovered, 15);
+  const c = await getBackfillCandidates([], 15);
   console.log('candidates:', JSON.stringify(c, null, 2));
   await closePool();
 }

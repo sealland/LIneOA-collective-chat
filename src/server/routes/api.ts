@@ -7,15 +7,24 @@ import {
   listAvailableDates,
 } from '../../database/repositories/dashboardRepository.js';
 import { getCollectJobStatus, startCollectJob } from '../../services/collectJobService.js';
+import { getNightCollectStatus } from '../../services/nightCollectWorker.js';
+import {
+  getCollectorHeadless,
+  setCollectorHeadless,
+} from '../../services/collectorSettingsService.js';
+import { getLoginJobStatus, startLoginJob } from '../../services/loginJobService.js';
 import { createModuleLogger } from '../../logger/index.js';
-import dayjs from 'dayjs';
+import { normalizeDateRange } from '../../utils/dateRange.js';
 import { Router } from 'express';
 
 const log = createModuleLogger('api');
 
-function parseDate(raw: unknown): string | null {
-  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
-  return dayjs(raw).format('YYYY-MM-DD') === raw ? raw : null;
+function parseRange(query: { from?: unknown; to?: unknown; date?: unknown }) {
+  return normalizeDateRange({
+    from: query.from,
+    to: query.to,
+    date: query.date,
+  });
 }
 
 export function createApiRouter(): Router {
@@ -36,80 +45,130 @@ export function createApiRouter(): Router {
   });
 
   router.get('/overview', async (req, res) => {
-    const date = parseDate(req.query.date) ?? dayjs().format('YYYY-MM-DD');
+    const range = parseRange(req.query);
     try {
-      const data = await getOverview(date);
+      const data = await getOverview(range);
       res.json(data);
     } catch (err) {
-      log.error('overview failed', { err, date });
+      log.error('overview failed', { err, range });
       res.status(500).json({ error: 'Failed to load overview' });
     }
   });
 
   router.get('/employees', async (req, res) => {
-    const date = parseDate(req.query.date) ?? dayjs().format('YYYY-MM-DD');
+    const range = parseRange(req.query);
     try {
-      const employees = await getEmployees(date);
-      res.json({ businessDate: date, employees });
+      const employees = await getEmployees(range);
+      res.json({
+        businessDate: range.to,
+        fromDate: range.from,
+        toDate: range.to,
+        employees,
+      });
     } catch (err) {
-      log.error('employees failed', { err, date });
+      log.error('employees failed', { err, range });
       res.status(500).json({ error: 'Failed to load employees' });
     }
   });
 
   router.get('/conversations', async (req, res) => {
-    const date = parseDate(req.query.date) ?? dayjs().format('YYYY-MM-DD');
+    const range = parseRange(req.query);
     try {
-      const conversations = await getConversations(date);
-      res.json({ businessDate: date, conversations });
+      const conversations = await getConversations(range);
+      res.json({
+        businessDate: range.to,
+        fromDate: range.from,
+        toDate: range.to,
+        conversations,
+      });
     } catch (err) {
-      log.error('conversations failed', { err, date });
+      log.error('conversations failed', { err, range });
       res.status(500).json({ error: 'Failed to load conversations' });
     }
   });
 
   /** Detail for slide-over — chatKey as query (keys can contain ://) */
   router.get('/conversation', async (req, res) => {
-    const date = parseDate(req.query.date) ?? dayjs().format('YYYY-MM-DD');
+    const range = parseRange(req.query);
     const chatKey = typeof req.query.chatKey === 'string' ? req.query.chatKey : '';
     if (!chatKey) {
       res.status(400).json({ error: 'chatKey is required' });
       return;
     }
     try {
-      const data = await getConversationDetail(date, chatKey);
+      const data = await getConversationDetail(range, chatKey);
       if (!data) {
-        res.status(404).json({ error: 'Conversation not found for this date' });
+        res.status(404).json({ error: 'Conversation not found for this date range' });
         return;
       }
       res.json(data);
     } catch (err) {
-      log.error('conversation detail failed', { err, date, chatKey });
+      log.error('conversation detail failed', { err, range, chatKey });
       res.status(500).json({ error: 'Failed to load conversation detail' });
     }
   });
 
   router.get('/quality', async (req, res) => {
-    const date = parseDate(req.query.date) ?? dayjs().format('YYYY-MM-DD');
+    const range = parseRange(req.query);
     try {
-      const data = await getQuality(date);
+      const data = await getQuality(range);
       res.json(data);
     } catch (err) {
-      log.error('quality failed', { err, date });
+      log.error('quality failed', { err, range });
       res.status(500).json({ error: 'Failed to load quality' });
     }
   });
 
   router.get('/collect/status', (_req, res) => {
-    res.json(getCollectJobStatus());
+    res.json({
+      ...getCollectJobStatus(),
+      nightCollect: getNightCollectStatus(),
+    });
+  });
+
+  router.get('/collector/settings', (_req, res) => {
+    res.json({
+      headless: getCollectorHeadless(),
+      login: getLoginJobStatus(),
+    });
+  });
+
+  router.put('/collector/settings', (req, res) => {
+    const headless = req.body?.headless;
+    if (typeof headless !== 'boolean') {
+      res.status(400).json({ error: 'headless must be boolean' });
+      return;
+    }
+    res.json({
+      headless: setCollectorHeadless(headless).headless,
+      login: getLoginJobStatus(),
+    });
+  });
+
+  router.get('/login/status', (_req, res) => {
+    res.json(getLoginJobStatus());
+  });
+
+  router.post('/login', (_req, res) => {
+    const result = startLoginJob();
+    if (!result.ok) {
+      res.status(409).json({ error: result.error, status: getLoginJobStatus() });
+      return;
+    }
+    res.status(202).json({
+      ok: true,
+      message: 'เปิดเบราว์เซอร์สำหรับ login LINE แล้ว',
+      status: getLoginJobStatus(),
+    });
   });
 
   router.post('/collect', (req, res) => {
-    const date =
-      parseDate(req.body?.date) ??
-      parseDate(req.query.date) ??
-      dayjs().format('YYYY-MM-DD');
-    const result = startCollectJob(date);
+    const range = normalizeDateRange({
+      from: req.body?.from ?? req.query.from,
+      to: req.body?.to ?? req.query.to,
+      date: req.body?.date ?? req.query.date,
+    });
+    const result = startCollectJob(range);
     if (!result.ok) {
       res.status(409).json({ error: result.error, status: getCollectJobStatus() });
       return;
@@ -117,7 +176,10 @@ export function createApiRouter(): Router {
     res.status(202).json({
       ok: true,
       message: 'เริ่มเก็บข้อมูลแล้ว',
-      status: getCollectJobStatus(),
+      status: {
+        ...getCollectJobStatus(),
+        nightCollect: getNightCollectStatus(),
+      },
     });
   });
 

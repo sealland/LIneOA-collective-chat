@@ -53,6 +53,7 @@ const AUTO_REPLY_PATTERNS = [
   /auto\s*reply/i,
   /ตอบกลับอัตโนมัติ/i,
   /automatic reply/i,
+  /ขอบคุณที่\s*เป็นเพื่อน\s*กับ/i,
   /ได้รับข้อความแล้ว/i,
   /thank you for your message/i,
   /ข้อความอัตโนมัติ/i,

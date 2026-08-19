@@ -9,6 +9,7 @@ import { ConcernBadge, EmptyHint, ErrorBox, InfoTip, Loading } from '../componen
 import { ConversationDetailPanel } from '../components/ConversationDetailPanel';
 import type { TipKey } from '../lib/tips';
 import { useI18n } from '../lib/i18n';
+import { dateRangeQuery } from '../lib/dateRange';
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 type ConvTab = 'all' | 'longWait';
@@ -64,7 +65,7 @@ function sortValue(r: ConversationRow, key: SortKey): string | number | null {
   }
 }
 
-export function ConversationsPage({ date }: { date: string }) {
+export function ConversationsPage({ from, to }: { from: string; to: string }) {
   const { t } = useI18n();
   const [rows, setRows] = useState<ConversationRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +74,7 @@ export function ConversationsPage({ date }: { date: string }) {
   const [activeTab, setActiveTab] = useState<ConvTab>('all');
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [onlyNewCustomers, setOnlyNewCustomers] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(25);
@@ -115,7 +117,9 @@ export function ConversationsPage({ date }: { date: string }) {
     setError(null);
     setSelectedKey(null);
     setPage(1);
-    fetchJson<{ conversations: ConversationRow[] }>(`/api/conversations?date=${date}`)
+    fetchJson<{ conversations: ConversationRow[] }>(
+      `/api/conversations?${dateRangeQuery(from, to)}`
+    )
       .then((d) => {
         if (!cancelled) setRows(d.conversations);
       })
@@ -128,7 +132,7 @@ export function ConversationsPage({ date }: { date: string }) {
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [from, to]);
 
   useEffect(() => {
     if (activeTab === 'longWait') {
@@ -148,6 +152,7 @@ export function ConversationsPage({ date }: { date: string }) {
       } else {
         if (onlyUnread && !r.isUnread) return false;
         if (onlyWaiting && r.sessionStatus !== 'WAITING') return false;
+        if (onlyNewCustomers && !r.isNewCustomer) return false;
       }
       if (!query) return true;
       const hay = [
@@ -174,11 +179,11 @@ export function ConversationsPage({ date }: { date: string }) {
       }
       return asc ? Number(av) - Number(bv) : Number(bv) - Number(av);
     });
-  }, [rows, q, onlyUnread, onlyWaiting, activeTab, sortKey, asc]);
+  }, [rows, q, onlyUnread, onlyWaiting, onlyNewCustomers, activeTab, sortKey, asc]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, onlyUnread, onlyWaiting, pageSize, activeTab, sortKey, asc]);
+  }, [q, onlyUnread, onlyWaiting, onlyNewCustomers, pageSize, activeTab, sortKey, asc]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setAsc(!asc);
@@ -253,6 +258,17 @@ export function ConversationsPage({ date }: { date: string }) {
                 <input type="checkbox" checked={onlyWaiting} onChange={(e) => setOnlyWaiting(e.target.checked)} />
                 {t.waitingOnly}
               </label>
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <input
+                  type="checkbox"
+                  checked={onlyNewCustomers}
+                  onChange={(e) => setOnlyNewCustomers(e.target.checked)}
+                />
+                <span className="inline-flex items-center gap-1">
+                  {t.newCustomerOnly}
+                  <InfoTip tip="newCustomerFilter" />
+                </span>
+              </label>
             </>
           ) : null}
         </div>
@@ -305,7 +321,14 @@ export function ConversationsPage({ date }: { date: string }) {
                       ].join(' ')}
                     >
                       <td>
-                        <div className="font-medium">{r.customerName || '—'}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{r.customerName || '—'}</span>
+                          {r.isNewCustomer ? (
+                            <span className="rounded-full bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-deep)]">
+                              {t.newCustomerBadge}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="font-mono mt-0.5 max-w-[140px] truncate text-[11px] text-[var(--muted)]">
                           {r.chatKey}
                         </div>
@@ -415,8 +438,13 @@ export function ConversationsPage({ date }: { date: string }) {
         </>
       )}
 
+      <p className="text-xs leading-relaxed text-[var(--muted)]">
+        * {t.newCustomerRemark}
+      </p>
+
       <ConversationDetailPanel
-        date={date}
+        from={from}
+        to={to}
         chatKey={selectedKey}
         preview={selectedPreview}
         onClose={() => setSelectedKey(null)}

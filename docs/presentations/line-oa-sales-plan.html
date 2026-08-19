@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>แผนพัฒนาการขายผ่าน LINE OA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1c1914;
+      --muted: #6b6458;
+      --line: #e4ddd0;
+      --surface: #faf6ee;
+      --panel: #fffdf8;
+      --rail: #171c1a;
+      --rail-ink: #f3f0e8;
+      --accent: #c8f542;
+      --accent-deep: #3f4d12;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --ok: #047857;
+      --font: "Sarabun", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--rail);
+    }
+
+    .deck {
+      height: 100%;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .slides {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: clamp(1.5rem, 4vw, 3.5rem);
+      background:
+        radial-gradient(900px 420px at 8% -10%, rgba(200, 245, 66, 0.14), transparent 55%),
+        radial-gradient(700px 380px at 100% 100%, rgba(28, 25, 20, 0.06), transparent 50%),
+        linear-gradient(160deg, #f3f0e8 0%, #ece6d8 55%, #e7e0d0 100%);
+    }
+
+    .slide.is-active {
+      display: flex;
+      flex-direction: column;
+      animation: rise 0.35s ease both;
+    }
+
+    .slide--dark {
+      background:
+        radial-gradient(700px 360px at 12% -15%, rgba(200, 245, 66, 0.18), transparent 55%),
+        var(--rail);
+      color: var(--rail-ink);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .eyebrow {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-deep);
+      margin-bottom: 0.75rem;
+    }
+
+    .slide--dark .eyebrow { color: var(--accent); }
+
+    h1 {
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      max-width: 16ch;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-size: clamp(1.55rem, 3.2vw, 2.35rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.85rem;
+    }
+
+    .lede {
+      font-size: clamp(1.05rem, 1.7vw, 1.25rem);
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 42rem;
+    }
+
+    .slide--dark .lede { color: rgba(243, 240, 232, 0.72); }
+
+    .brand {
+      margin-top: auto;
+      padding-top: 2rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .slide--dark .brand { color: rgba(243, 240, 232, 0.45); }
+
+    .grid-2 {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      margin-top: 1.4rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-top: 1.35rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.1rem 1.15rem;
+      box-shadow: 0 10px 28px rgba(28, 25, 20, 0.06);
+    }
+
+    .slide--dark .card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(243, 240, 232, 0.12);
+      box-shadow: none;
+      color: var(--rail-ink);
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+    }
+
+    .card p, .card li {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .slide--dark .card p,
+    .slide--dark .card li { color: rgba(243, 240, 232, 0.7); }
+
+    .card ul {
+      margin-left: 1.1rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-height: 7.5rem;
+    }
+
+    .kpi .label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .kpi .value {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .kpi .hint {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .tag {
+      display: inline-block;
+      margin: 0.2rem 0.3rem 0.2rem 0;
+      padding: 0.28rem 0.55rem;
+      border-radius: 999px;
+      background: #eef8c8;
+      color: var(--accent-deep);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .steps {
+      margin-top: 1.25rem;
+      display: grid;
+      gap: 0.75rem;
+      max-width: 48rem;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.85rem;
+      align-items: start;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    .step-num {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--rail);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .step strong { display: block; margin-bottom: 0.2rem; }
+    .step span { color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+
+    .rule {
+      margin-top: 1.25rem;
+      padding: 1rem 1.15rem;
+      border-left: 4px solid var(--accent);
+      background: rgba(200, 245, 66, 0.16);
+      border-radius: 0 12px 12px 0;
+      max-width: 44rem;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .two-col {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1.1fr 0.9fr;
+      margin-top: 1.2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.65rem 1.1rem;
+      background: #111512;
+      color: rgba(243, 240, 232, 0.7);
+      font-size: 0.8rem;
+      border-top: 1px solid rgba(243, 240, 232, 0.08);
+    }
+
+    .footer strong { color: var(--accent); font-weight: 600; }
+
+    .nav {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .nav button {
+      border: 1px solid rgba(243, 240, 232, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--rail-ink);
+      border-radius: 8px;
+      padding: 0.35rem 0.7rem;
+      font-family: var(--font);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .nav button:hover { border-color: rgba(200, 245, 66, 0.5); }
+
+    .dots {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .dots button {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      border: 0;
+      background: rgba(243, 240, 232, 0.25);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .dots button.is-active { background: var(--accent); width: 1.15rem; border-radius: 999px; }
+
+    .big-list {
+      margin-top: 1.2rem;
+      display: grid;
+      gap: 0.7rem;
+      max-width: 46rem;
+    }
+
+    .big-list li {
+      list-style: none;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 1.05rem;
+      line-height: 1.45;
+    }
+
+    .big-list li strong {
+      color: var(--accent-deep);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      margin-right: 0.45rem;
+    }
+
+    .warn { color: var(--warn); font-weight: 700; }
+    .ok { color: var(--ok); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="slides" id="slides">
+
+      <section class="slide slide--dark is-active" data-slide>
+        <p class="eyebrow">Retail Sales Ops · LINE OA</p>
+        <h1>แผนพัฒนาการขายผ่านช่องทาง LINE OA</h1>
+        <p class="lede">
+          ใช้ข้อมูลจาก LINE OA Daily Monitor วางแผนขายแบบปฏิบัติการก่อน โปรโมททีหลัง
+          — วัดความเร็วการตอบ คิวค้าง และกำลังคน แล้วค่อยขยายทราฟฟิก
+        </p>
+        <p class="brand">LINE OA Daily Monitor · Internal briefing</p>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">ทำไมต้องเริ่มจากข้อมูลชุดนี้</p>
+        <h2>ช่องทางขายดีได้ ถ้า “ตอบทันและดูแลคิวได้”</h2>
+        <p class="lede">ข้อมูลที่เรามีวันนี้วัดคุณภาพปฏิบัติการขายบนแชทได้ชัด ไม่ใช่ยอดขายตรงๆ แต่เป็นฐานก่อนปิดการขาย</p>
+        <div class="grid-3">
+          <article class="card kpi">
+            <span class="label">ความเร็ว</span>
+            <span class="value">FRT / SLA 15 นาที</span>
+            <span class="hint">ลูกค้าถามซื้อรอนานไหม</span>
+          </article>
+          <article class="card kpi">
+            <span class="label">คิวงาน</span>
+            <span class="value">Unread · รอตอบ · รอตอบนานสุด</span>
+            <span class="hint">โอกาสขายที่กำลังหลุด</span>
+          </article>
+          <article class="card kpi">
+            <span class="label">กำลังคน</span>
+            <span class="value">Employees · Concern</span>
+            <span class="hint">ใครรับเคสขายได้ / ใครคอขวด</span>
+          </article>
+        </div>
+        <div class="rule">หลักการ: อย่าเพิ่มแคมเปญเข้า LINE ถ้าคิวยังล้นและตอบไม่ทัน</div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">สิ่งที่วัดได้ vs ยังไม่มี</p>
+        <h2>ใช้ของที่มีให้คุ้ม ก่อนรอระบบใหม่</h2>
+        <div class="grid-2">
+          <article class="card">
+            <h3 class="ok">มีอยู่แล้วในแดชบอร์ด</h3>
+            <ul>
+              <li>อัตราการตอบ / รอบที่ตอบแล้ว</li>
+              <li>SLA, FRT เฉลี่ย / P90</li>
+              <li>ห้องยังไม่อ่าน, รอตอบนานสุด</li>
+              <li>ผลงานรายพนักงาน</li>
+              <li>ห้องไม่มีแท็ก / โน้ต / ผู้รับผิดชอบ</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3 class="warn">ยังไม่ได้นับเป็นยอดขายตรง</h3>
+            <ul>
+              <li>จำนวนออเดอร์ / มูลค่าขาย</li>
+              <li>Conversion % ต่อห้องแชท</li>
+              <li>ที่มาลูกค้าจากโฆษณาไหน</li>
+              <li>สินค้าที่สนใจอัตโนมัติ</li>
+            </ul>
+            <p style="margin-top:0.7rem">แก้ระยะสั้น: แท็ก + โน้ตเลขออเดอร์ตอนปิดขาย</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">เฟส 1 · ล็อกมาตรฐานช่องทาง</p>
+        <h2>ตั้งเป้าปฏิบัติการก่อนขยายยอดทักเข้า</h2>
+        <div class="grid-2">
+          <article class="card">
+            <h3>เกณฑ์ผ่านก่อนยิงแคมเปญ</h3>
+            <ul>
+              <li>SLA ตอบใน 15 นาที ≥ เป้าทีม (เช่น 80%+)</li>
+              <li>ห้อง unread และรอตอบเหลือน้อยลงต่อเนื่อง</li>
+              <li>รอตอบนานสุดไม่ยืดหลายชั่วโมงโดยไม่มีเจ้าของเคส</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>ถ้ายังไม่ผ่าน</h3>
+            <ul>
+              <li>เลื่อนบรอดแคสต์ / โฆษณาเข้า LINE</li>
+              <li>เติมกะคน หรือลดจำนวนห้องต่อคน</li>
+              <li>เคลียร์คิวรอตอบนานสุดทุกเช้า</li>
+            </ul>
+          </article>
+        </div>
+        <div class="rule">เป้าหมายเฟส 1 = ทำให้ LINE เป็นช่องทางที่ “เชื่อถือได้ว่ามีคนตอบ”</div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">เฟส 2 · แปลงแชทเป็นกรวยขาย</p>
+        <h2>แท็กสถานะขายให้ครบ — จุดอ่อนที่ระบบชี้แล้ว</h2>
+        <p class="lede">แดชบอร์ดบอกจำนวนห้องไม่มีแท็ก/โน้ต/ผู้รับผิดชอบ ใช้เป็น checklist การวางแผนขายทันที</p>
+        <div class="two-col">
+          <div>
+            <span class="tag">สนใจซื้อ</span>
+            <span class="tag">ขอราคา</span>
+            <span class="tag">กำลังเปรียบเทียบ</span>
+            <span class="tag">นัดปิดการขาย</span>
+            <span class="tag">รอโอน</span>
+            <span class="tag">ปิดได้แล้ว</span>
+            <span class="tag">หลังขาย</span>
+            <span class="tag">คอมเพลน</span>
+            <div class="card" style="margin-top:1rem">
+              <h3>วิธีใช้รายสัปดาห์</h3>
+              <ul>
+                <li>ห้อง `สนใจซื้อ` ที่รอตอบนาน = โอกาสหลุด</li>
+                <li>แยก `หลังขาย/คอมเพลน` ออกจากคิวขาย</li>
+                <li>ทุกเคสขายต้องมีผู้รับผิดชอบ</li>
+              </ul>
+            </div>
+          </div>
+          <article class="card">
+            <h3>ทำไมสำคัญ</h3>
+            <p>ถ้าไม่แท็ก จะรู้แค่ว่า “ตอบเร็ว/ช้า” แต่ไม่รู้ว่ากำลังขายอยู่กี่ดีล และดีลไหนควรเร่ง</p>
+            <p style="margin-top:0.75rem">แท็ก = เชื่อมข้อมูล Monitor กับแผนขายจริง</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">เฟส 3 · จัดกำลังคน</p>
+        <h2>ใช้หน้า Employees วางกะขาย LINE</h2>
+        <div class="grid-3">
+          <article class="card">
+            <h3>SLA สูง · FRT เร็ว</h3>
+            <p>รับคิว <strong>สนใจซื้อ</strong> และช่วงพีกทราฟฟิก</p>
+          </article>
+          <article class="card">
+            <h3>โหลดสูง · SLA ต่ำ</h3>
+            <p>ลดจำนวนห้องต่อคน หรือจับคู่คนช่วย</p>
+          </article>
+          <article class="card">
+            <h3>Concern ALERT / WATCH</h3>
+            <p>ไม่โยนเคสปิดการขายให้ก่อนแก้จังหวะตอบ</p>
+          </article>
+        </div>
+        <div class="rule">ตัวเลขหลัง “/” = รอบที่จับเวลาได้ → ใช้ตัดสินความเร็วได้จริงกว่าจำนวนตอบทั้งหมด</div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">วินัยรายวัน / รายสัปดาห์</p>
+        <h2>ตารางใช้แดชบอร์ดเพื่อขาย</h2>
+        <ol class="big-list">
+          <li><strong>เช้า</strong> Overview — เคลียร์ unread + รอตอบนานสุดก่อนขายใหม่</li>
+          <li><strong>กลางวัน</strong> Conversations แท็บรอตอบนาน — โฟกัสเคสขายที่ค้าง</li>
+          <li><strong>เย็น</strong> Employees — ใครตอบทัน / ใครคอขวด</li>
+          <li><strong>สิ้นสัปดาห์</strong> ปฏิทิน 7 วัน — เทียบ SLA, รอบตอบ, สัดส่วนไม่มีแท็ก</li>
+          <li><strong>ก่อนแคมเปญ</strong> ถ้าคิวยังสูง เลื่อนวันยิงโปรโมชัน</li>
+        </ol>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">โรดแมป 30 วัน</p>
+        <h2>ลำดับลงมือที่ทีมทำตามได้</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <strong>สัปดาห์ 1 — มาตรฐานตอบ</strong>
+              <span>เก็บข้อมูลรายวัน · ตั้งเป้า SLA · เคลียร์คิวรอตอบนานทุกเช้า</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <strong>สัปดาห์ 2 — แท็กกรวยขาย</strong>
+              <span>บังคับแท็กสถานะขาย + ผู้รับผิดชอบ · ลดห้องไม่มีแท็ก/โน้ต</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div>
+              <strong>สัปดาห์ 3 — จัดคนตามข้อมูล</strong>
+              <span>แบ่งคิวตาม Employees · คนเร็วรับดีลร้อน คนช้าได้งานดูแลต่อ</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div>
+              <strong>สัปดาห์ 4 — ขยายทราฟฟิกอย่างมีเงื่อนไข</strong>
+              <span>ยิงแคมเปญเมื่อ SLA/คิวผ่านเกณฑ์ · บันทึกออเดอร์ในโน้ตเพื่อวัดผล</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide slide--dark" data-slide>
+        <p class="eyebrow">สรุปสำหรับผู้บริหาร</p>
+        <h2>พัฒนาการขายผ่าน LINE = ล็อกคิวให้ทัน แล้วค่อยเร่งยอดเข้า</h2>
+        <div class="grid-2" style="margin-top:1.4rem">
+          <article class="card">
+            <h3>ทำทันที</h3>
+            <ul>
+              <li>ใช้ Monitor เป็นจอปฏิบัติการขายรายวัน</li>
+              <li>แท็กกรวยขาย + เจ้าของเคส</li>
+              <li>จัดคนตาม SLA / FRT</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>ผลที่คาดหวัง</h3>
+            <ul>
+              <li>โอกาสขายหลุดจากตอบช้าลดลง</li>
+              <li>รู้ดีลที่กำลังเดินและต้องเร่ง</li>
+              <li>ขยายแคมเปญได้โดยไม่พังคิว</li>
+            </ul>
+          </article>
+        </div>
+        <p class="brand" style="margin-top:2rem">เปิดไฟล์นี้ในเบราว์เซอร์ · ← → หรือคลิกจุดด้านล่างเพื่อเปลี่ยนสไลด์ · F = เต็มจอ</p>
+      </section>
+
+    </div>
+
+    <div class="footer">
+      <div>สไลด์ <strong id="page">1</strong> / <span id="total">9</span></div>
+      <div class="dots" id="dots" aria-label="สไลด์"></div>
+      <div class="nav">
+        <button type="button" id="prev" aria-label="ก่อนหน้า">←</button>
+        <button type="button" id="next" aria-label="ถัดไป">→</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('[data-slide]')];
+    const dots = document.getElementById('dots');
+    const pageEl = document.getElementById('page');
+    const totalEl = document.getElementById('total');
+    let index = 0;
+
+    totalEl.textContent = String(slides.length);
+    slides.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'ไปสไลด์ ' + (i + 1));
+      b.addEventListener('click', () => show(i));
+      dots.appendChild(b);
+    });
+
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((s, n) => s.classList.toggle('is-active', n === index));
+      [...dots.children].forEach((d, n) => d.classList.toggle('is-active', n === index));
+      pageEl.textContent = String(index + 1);
+    }
+
+    document.getElementById('prev').addEventListener('click', () => show(index - 1));
+    document.getElementById('next').addEventListener('click', () => show(index + 1));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        show(index + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        show(index - 1);
+      } else if (e.key === 'Home') {
+        show(0);
+      } else if (e.key === 'End') {
+        show(slides.length - 1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

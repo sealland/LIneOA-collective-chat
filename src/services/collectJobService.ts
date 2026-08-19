@@ -5,36 +5,61 @@ import { config as dotenvConfig } from 'dotenv';
 import { config } from '../config/index.js';
 import { getLatestCollectorRun } from '../database/repositories/collectorRunRepository.js';
 import { createModuleLogger } from '../logger/index.js';
+import {
+  eachDayInRange,
+  formatDateRange,
+  normalizeDateRange,
+  type DateRange,
+} from '../utils/dateRange.js';
+import { isLoginJobRunning, setCollectJobRunning } from './jobFlags.js';
 
 const log = createModuleLogger('collect-job');
 
 const LOCK_FILE = path.join(config.projectRoot, 'auth', 'collector.lock');
 const ENV_FILE = path.join(config.projectRoot, '.env');
+/** Guard against accidental year-long KPI loops from the dashboard. */
+const MAX_KPI_DAYS = 62;
 
 export type CollectJobPhase = 'idle' | 'collecting' | 'kpi' | 'done' | 'error';
+export type CollectJobSource = 'manual' | 'night';
 
-export type CollectJobStatus = {
+type CollectJobState = {
   phase: CollectJobPhase;
   running: boolean;
+  source: CollectJobSource;
   businessDate: string | null;
+  fromDate: string | null;
+  toDate: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   message: string | null;
   error: string | null;
   lastExitCode: number | null;
-  lockHeld: boolean;
 };
 
-let job: CollectJobStatus = {
+export type CollectJobStatus = CollectJobState & {
+  lockHeld: boolean;
+  loginRunning: boolean;
+};
+
+let job: CollectJobState = {
   phase: 'idle',
   running: false,
+  source: 'manual',
   businessDate: null,
+  fromDate: null,
+  toDate: null,
   startedAt: null,
   finishedAt: null,
   message: null,
   error: null,
   lastExitCode: null,
-  lockHeld: false,
+};
+
+export type StartCollectJobOptions = {
+  source?: CollectJobSource;
+  /** Child-process override; does not persist COLLECTOR_HEADLESS in .env. */
+  headless?: boolean;
 };
 
 function isProcessAlive(pid: number): boolean {
@@ -74,14 +99,18 @@ function refreshEnvFromDotenv(): void {
   }
 }
 
-function runNpmScript(script: string, extraArgs: string[] = []): Promise<number> {
+function runNpmScript(
+  script: string,
+  extraArgs: string[] = [],
+  extraEnv: Record<string, string> = {}
+): Promise<number> {
   return new Promise((resolve, reject) => {
     refreshEnvFromDotenv();
     const args = ['run', script, ...extraArgs];
-    log.info('Spawning npm script', { script, extraArgs });
+    log.info('Spawning npm script', { script, extraArgs, extraEnvKeys: Object.keys(extraEnv) });
     const child = spawn('npm', args, {
       cwd: config.projectRoot,
-      env: process.env,
+      env: { ...process.env, ...extraEnv },
       shell: true,
       windowsHide: false,
     });
@@ -121,39 +150,74 @@ async function describeCollectFailure(exitCode: number): Promise<string> {
 }
 
 export function getCollectJobStatus(): CollectJobStatus {
-  return { ...job, lockHeld: isLockHeld() || job.running };
+  return {
+    ...job,
+    lockHeld: isLockHeld() || job.running,
+    loginRunning: isLoginJobRunning(),
+  };
 }
 
 /**
- * Start background collect + KPI for a business date.
- * Returns false if already running / locked.
+ * Start background collect + KPI for a date range (inclusive).
+ * Scrapes LINE once (latest state), then recomputes kpi:daily for each day in range.
  */
-export function startCollectJob(businessDate: string): { ok: true } | { ok: false; error: string } {
+export function startCollectJob(
+  rangeInput: DateRange | string,
+  options: StartCollectJobOptions = {}
+): { ok: true } | { ok: false; error: string } {
   if (job.running) {
     return { ok: false, error: 'กำลังเก็บข้อมูลอยู่แล้ว กรุณารอให้จบก่อน' };
+  }
+  if (isLoginJobRunning()) {
+    return { ok: false, error: 'กำลัง login LINE อยู่ — รอให้บันทึก session ก่อน' };
   }
   if (isLockHeld()) {
     return { ok: false, error: 'มี collector อื่นกำลังทำงานอยู่ (lock)' };
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) {
+
+  const range =
+    typeof rangeInput === 'string'
+      ? normalizeDateRange({ date: rangeInput })
+      : normalizeDateRange(rangeInput);
+  const days = eachDayInRange(range);
+  if (days.length === 0) {
     return { ok: false, error: 'รูปแบบวันที่ไม่ถูกต้อง' };
+  }
+  if (days.length > MAX_KPI_DAYS) {
+    return {
+      ok: false,
+      error: `ช่วงวันที่ยาวเกินไป (สูงสุด ${MAX_KPI_DAYS} วัน) — ย่อช่วงแล้วลองใหม่`,
+    };
+  }
+
+  const rangeLabel = formatDateRange(range);
+  const source = options.source ?? 'manual';
+  const extraEnv: Record<string, string> = {};
+  if (options.headless !== undefined) {
+    extraEnv.COLLECTOR_HEADLESS = options.headless ? 'true' : 'false';
   }
 
   job = {
     phase: 'collecting',
     running: true,
-    businessDate,
+    source,
+    businessDate: range.to,
+    fromDate: range.from,
+    toDate: range.to,
     startedAt: new Date().toISOString(),
     finishedAt: null,
-    message: 'กำลังเก็บข้อมูลจาก LINE OA… อาจใช้เวลาหลายนาที',
+    message:
+      source === 'night'
+        ? 'กำลังเก็บข้อมูลอัตโนมัติกลางคืนจาก LINE OA… อาจใช้เวลาหลายนาที'
+        : 'กำลังเก็บข้อมูลจาก LINE OA… อาจใช้เวลาหลายนาที',
     error: null,
     lastExitCode: null,
-    lockHeld: true,
   };
+  setCollectJobRunning(true);
 
   void (async () => {
     try {
-      const collectCode = await runNpmScript('collect:snapshots');
+      const collectCode = await runNpmScript('collect:snapshots', [], extraEnv);
       job.lastExitCode = collectCode;
       if (collectCode !== 0) {
         job.phase = 'error';
@@ -165,23 +229,30 @@ export function startCollectJob(businessDate: string): { ok: true } | { ok: fals
       }
 
       job.phase = 'kpi';
-      job.message = `กำลังคำนวณ KPI ของวันที่ ${businessDate}…`;
-
-      const kpiCode = await runNpmScript('kpi:daily', ['--', `--date=${businessDate}`]);
-      job.lastExitCode = kpiCode;
-      if (kpiCode !== 0) {
-        job.phase = 'error';
-        job.running = false;
-        job.finishedAt = new Date().toISOString();
-        job.error = `เก็บข้อมูลแล้ว แต่คำนวณ KPI ไม่สำเร็จ (exit ${kpiCode})`;
-        job.message = null;
-        return;
+      for (let i = 0; i < days.length; i += 1) {
+        const day = days[i]!;
+        job.businessDate = day;
+        job.message = `กำลังคำนวณ KPI ${day} (${i + 1}/${days.length})…`;
+        const kpiCode = await runNpmScript('kpi:daily', ['--', `--date=${day}`]);
+        job.lastExitCode = kpiCode;
+        if (kpiCode !== 0) {
+          job.phase = 'error';
+          job.running = false;
+          job.finishedAt = new Date().toISOString();
+          job.error = `เก็บข้อมูลแล้ว แต่คำนวณ KPI ของ ${day} ไม่สำเร็จ (exit ${kpiCode})`;
+          job.message = null;
+          return;
+        }
       }
 
       job.phase = 'done';
       job.running = false;
+      job.businessDate = range.to;
       job.finishedAt = new Date().toISOString();
-      job.message = 'เก็บข้อมูลและคำนวณ KPI เรียบร้อยแล้ว — รีเฟรชหน้าเพื่อดูค่าล่าสุด';
+      job.message =
+        days.length === 1
+          ? 'เก็บข้อมูลและคำนวณ KPI เรียบร้อยแล้ว — รีเฟรชหน้าเพื่อดูค่าล่าสุด'
+          : `เก็บข้อมูลและคำนวณ KPI ช่วง ${rangeLabel} เรียบร้อยแล้ว — รีเฟรชหน้าเพื่อดูค่าล่าสุด`;
       job.error = null;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -191,6 +262,8 @@ export function startCollectJob(businessDate: string): { ok: true } | { ok: fals
       job.finishedAt = new Date().toISOString();
       job.error = message;
       job.message = null;
+    } finally {
+      setCollectJobRunning(false);
     }
   })();
 

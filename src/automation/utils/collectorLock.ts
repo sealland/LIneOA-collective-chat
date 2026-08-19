@@ -21,6 +21,17 @@ interface LockPayload {
   startedAt: string;
 }
 
+export function isCollectorLockHeld(): boolean {
+  if (!fs.existsSync(LOCK_FILE)) return false;
+  try {
+    const payload = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8')) as LockPayload;
+    if (payload.pid && isProcessAlive(payload.pid)) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 function isProcessAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);

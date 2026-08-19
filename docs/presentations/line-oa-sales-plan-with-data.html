@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>สถานะจริง LINE OA + แผนพัฒนาการขาย · 06–14 ส.ค. 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1c1914;
+      --muted: #6b6458;
+      --line: #e4ddd0;
+      --panel: #fffdf8;
+      --rail: #171c1a;
+      --rail-ink: #f3f0e8;
+      --accent: #c8f542;
+      --accent-deep: #3f4d12;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --ok: #047857;
+      --font: "Sarabun", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: var(--font); color: var(--ink); background: var(--rail); }
+    .deck { height: 100%; display: grid; grid-template-rows: 1fr auto; }
+    .slides { position: relative; height: 100%; overflow: hidden; }
+    .slide {
+      position: absolute; inset: 0; display: none;
+      padding: clamp(1.35rem, 3.5vw, 3rem);
+      background:
+        radial-gradient(900px 420px at 8% -10%, rgba(200, 245, 66, 0.14), transparent 55%),
+        linear-gradient(160deg, #f3f0e8 0%, #ece6d8 55%, #e7e0d0 100%);
+    }
+    .slide.is-active { display: flex; flex-direction: column; animation: rise 0.35s ease both; }
+    .slide--dark {
+      background: radial-gradient(700px 360px at 12% -15%, rgba(200, 245, 66, 0.18), transparent 55%), var(--rail);
+      color: var(--rail-ink);
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    .eyebrow {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent-deep); margin-bottom: 0.65rem;
+    }
+    .slide--dark .eyebrow { color: var(--accent); }
+    h1 {
+      font-size: clamp(1.85rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.03em;
+      line-height: 1.15; max-width: 18ch; margin-bottom: 0.85rem;
+    }
+    h2 {
+      font-size: clamp(1.4rem, 2.8vw, 2.1rem); font-weight: 800; letter-spacing: -0.02em;
+      line-height: 1.2; margin-bottom: 0.65rem;
+    }
+    .lede {
+      font-size: clamp(1rem, 1.5vw, 1.15rem); line-height: 1.5; color: var(--muted); max-width: 44rem;
+    }
+    .slide--dark .lede { color: rgba(243, 240, 232, 0.72); }
+    .meta {
+      margin-top: 0.85rem; font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .slide--dark .meta { color: rgba(243, 240, 232, 0.45); }
+    .grid-2, .grid-3, .grid-4 {
+      display: grid; gap: 0.85rem; margin-top: 1.15rem;
+    }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 0.95rem 1rem; box-shadow: 0 10px 28px rgba(28, 25, 20, 0.06);
+    }
+    .slide--dark .card {
+      background: rgba(255,255,255,0.05); border-color: rgba(243,240,232,0.12); box-shadow: none; color: var(--rail-ink);
+    }
+    .card h3 { font-size: 0.98rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .card p, .card li { font-size: 0.9rem; line-height: 1.45; color: var(--muted); }
+    .slide--dark .card p, .slide--dark .card li { color: rgba(243,240,232,0.7); }
+    .card ul { margin-left: 1.05rem; display: grid; gap: 0.3rem; }
+    .metric {
+      min-height: 6.4rem; display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .metric .label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    }
+    .metric .value {
+      font-family: var(--mono); font-size: clamp(1.35rem, 2.4vw, 1.85rem); font-weight: 600; color: var(--ink);
+    }
+    .metric .hint { font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
+    .tone-ok .value { color: var(--ok); }
+    .tone-warn .value { color: var(--warn); }
+    .tone-alert .value { color: var(--danger); }
+    .rule {
+      margin-top: 1.1rem; padding: 0.9rem 1rem; border-left: 4px solid var(--accent);
+      background: rgba(200, 245, 66, 0.16); border-radius: 0 12px 12px 0;
+      max-width: 48rem; font-size: 1rem; line-height: 1.45; font-weight: 600;
+    }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem;
+      background: var(--panel); border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+    }
+    th, td { padding: 0.55rem 0.7rem; text-align: left; border-bottom: 1px solid var(--line); }
+    th {
+      font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: #f1ebe0;
+    }
+    td.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .badge {
+      display: inline-block; padding: 0.12rem 0.45rem; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .badge-ok { background: #d1fae5; color: var(--ok); }
+    .badge-watch { background: #ffedd5; color: var(--warn); }
+    .footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.6rem 1.1rem; background: #111512; color: rgba(243,240,232,0.7);
+      font-size: 0.78rem; border-top: 1px solid rgba(243,240,232,0.08);
+    }
+    .footer strong { color: var(--accent); }
+    .nav { display: flex; gap: 0.35rem; }
+    .nav button {
+      border: 1px solid rgba(243,240,232,0.18); background: rgba(255,255,255,0.04);
+      color: var(--rail-ink); border-radius: 8px; padding: 0.32rem 0.65rem;
+      font-family: var(--font); font-size: 0.78rem; cursor: pointer;
+    }
+    .dots { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center; }
+    .dots button {
+      width: 0.5rem; height: 0.5rem; border-radius: 999px; border: 0;
+      background: rgba(243,240,232,0.25); cursor: pointer; padding: 0;
+    }
+    .dots button.is-active { background: var(--accent); width: 1.1rem; }
+    .note {
+      margin-top: 0.85rem; font-size: 0.82rem; color: var(--muted); max-width: 48rem; line-height: 1.4;
+    }
+    .big-list { margin-top: 1rem; display: grid; gap: 0.55rem; max-width: 48rem; }
+    .big-list li {
+      list-style: none; padding: 0.75rem 0.9rem; border-radius: 12px;
+      background: var(--panel); border: 1px solid var(--line); font-size: 0.98rem; line-height: 1.4;
+    }
+    .big-list strong { color: var(--accent-deep); font-family: var(--mono); font-size: 0.8rem; margin-right: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="slides" id="slides">
+
+      <section class="slide slide--dark is-active" data-slide>
+        <p class="eyebrow">ข้อมูลจริงจาก LINE OA Daily Monitor</p>
+        <h1>สถานะช่องทาง + แผนพัฒนาการขาย</h1>
+        <p class="lede">
+          สรุปตัวเลขช่วง <strong style="color:var(--accent)">06/08/2026 – 14/08/2026</strong>
+          เพื่อใช้ตัดสินใจว่าควรเร่งยอดเข้า LINE เมื่อไหร่ และต้องล็อกคิว/คนก่อนแค่ไหน
+        </p>
+        <p class="meta">แหล่งข้อมูล: API overview + employees · ช่วง 9 วัน · Collect run #60 สำเร็จ · สไลด์แยกจากชุดแนวทางทั่วไป</p>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">ภาพรวม 9 วัน · 06–14 ส.ค. 2026</p>
+        <h2>ช่องทางตอบได้ระดับหนึ่ง แต่ยังมีคิวค้างหนัก</h2>
+        <div class="grid-4">
+          <article class="card metric tone-ok">
+            <span class="label">อัตราการตอบ</span>
+            <span class="value">82%</span>
+            <span class="hint">817 / 1,001 รอบ</span>
+          </article>
+          <article class="card metric tone-warn">
+            <span class="label">ตอบทัน SLA 15 นาที</span>
+            <span class="value">80%</span>
+            <span class="hint">638 / 801 รอบทางการ</span>
+          </article>
+          <article class="card metric">
+            <span class="label">FRT กลางๆ</span>
+            <span class="value">3 นาที</span>
+            <span class="hint">เฉลี่ย 16 นาที · P90 36 นาที</span>
+          </article>
+          <article class="card metric tone-alert">
+            <span class="label">รอบยังรอตอบ</span>
+            <span class="value">184</span>
+            <span class="hint">~18% ของทุกรอบในช่วง</span>
+          </article>
+        </div>
+        <div class="rule">ครึ่งหนึ่งตอบเร็วมาก (median 3 นาที) แต่หางช้า (P90 36 นาที) + คิวรอ 184 รอบ = ยังไม่พร้อมเร่งทราฟฟิกเต็มที่</div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">คิวและความเสี่ยงตอนนี้</p>
+        <h2>จุดที่ทำให้โอกาสขายหลุด</h2>
+        <div class="grid-3">
+          <article class="card metric">
+            <span class="label">ห้องที่เจอในช่วง</span>
+            <span class="value">284</span>
+            <span class="hint">รายงานขายไม่รวมห้องภายใน 1 ห้อง → 283</span>
+          </article>
+          <article class="card metric tone-ok">
+            <span class="label">ห้องยังไม่อ่าน</span>
+            <span class="value">2</span>
+            <span class="hint">unread ล่าสุดไม่สูง — แต่มีห้องเห็น unread นาน ~3.7 วัน</span>
+          </article>
+          <article class="card metric tone-alert">
+            <span class="label">รอตอบนานสุด</span>
+            <span class="value">~8 วัน</span>
+            <span class="hint">เพรสซิเด้นท์-แก้ว · รอบ WAITING ค้างยาว</span>
+          </article>
+        </div>
+        <div class="grid-3" style="margin-top:0.85rem">
+          <article class="card metric tone-alert">
+            <span class="label">ยังไม่มอบหมาย</span>
+            <span class="value">281</span>
+            <span class="hint">เกือบทุกห้องที่เปิดดูแล้วไม่มีผู้รับผิดชอบ</span>
+          </article>
+          <article class="card metric tone-warn">
+            <span class="label">ไม่มีแท็ก</span>
+            <span class="value">22</span>
+            <span class="hint">ยังจัดกรวยขายไม่ครบ</span>
+          </article>
+          <article class="card metric tone-warn">
+            <span class="label">ไม่มีโน้ต</span>
+            <span class="value">61</span>
+            <span class="hint">ติดตามดีล/ออเดอร์ยาก</span>
+          </article>
+        </div>
+        <p class="note">หมายเหตุ: ตัวเลข unassigned/ไม่มีแท็ก/โน้ต นับจากรายละเอียดห้องที่เปิด inspect ได้ในช่วง — unread จะไม่ถูกเปิดตามนโยบายความปลอดภัย</p>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">ทีมตอบแชท · Top load</p>
+        <h2>ใครรับเคสเยอะ / ใครต้องเฝ้า</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>พนักงาน</th>
+              <th>ตอบแล้ว / ทางการ</th>
+              <th>SLA %</th>
+              <th>Median FRT</th>
+              <th>P90</th>
+              <th>Concern</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Beam ZuBB Steel</td>
+              <td class="mono">283 / 273</td>
+              <td class="mono">82%</td>
+              <td class="mono">3m</td>
+              <td class="mono">26m</td>
+              <td><span class="badge badge-ok">OK</span></td>
+            </tr>
+            <tr>
+              <td>JAN</td>
+              <td class="mono">165 / 162</td>
+              <td class="mono">90%</td>
+              <td class="mono">3m</td>
+              <td class="mono">16m</td>
+              <td><span class="badge badge-ok">OK</span></td>
+            </tr>
+            <tr>
+              <td>แก้วใส</td>
+              <td class="mono">136 / 136</td>
+              <td class="mono">63%</td>
+              <td class="mono">10m</td>
+              <td class="mono">96m</td>
+              <td><span class="badge badge-watch">WATCH</span></td>
+            </tr>
+            <tr>
+              <td>Tikky</td>
+              <td class="mono">113 / 113</td>
+              <td class="mono">82%</td>
+              <td class="mono">3m</td>
+              <td class="mono">48m</td>
+              <td><span class="badge badge-ok">OK</span></td>
+            </tr>
+            <tr>
+              <td>N.Ploykaew</td>
+              <td class="mono">74 / 71</td>
+              <td class="mono">70%</td>
+              <td class="mono">3m</td>
+              <td class="mono">66m</td>
+              <td><span class="badge badge-watch">WATCH</span></td>
+            </tr>
+            <tr>
+              <td>NuNa</td>
+              <td class="mono">26 / 26</td>
+              <td class="mono">92%</td>
+              <td class="mono">5m</td>
+              <td class="mono">14m</td>
+              <td><span class="badge badge-ok">OK</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="rule">JAN / NuNa / Beam เหมาะรับคิวขายร้อน · แก้วใส / N.Ploykaew ต้องลดโหลดหรือคู่ช่วยก่อนโยนดีลปิดการขาย</div>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">อ่านตัวเลขเพื่อแผนขาย</p>
+        <h2>สรุปเชิงปฏิบัติการจากข้อมูลชุดนี้</h2>
+        <ol class="big-list">
+          <li><strong>ผ่านระดับพื้นฐาน</strong> ตอบได้ 82% · median FRT 3 นาที — ทีมตอบเร็วในเคสทั่วไป</li>
+          <li><strong>ยังไม่ผ่านเกณฑ์ขยายแคมเปญ</strong> รอตอบ 184 รอบ · SLA ~80% · หางช้า P90 36 นาที</li>
+          <li><strong>คอขวดใหญ่คือ ownership</strong> ห้องไม่มอบหมาย 281 — ขายต่อไม่รู้ว่าใครเป็นเจ้าของดีล</li>
+          <li><strong>กรวยขายยังไม่ชัด</strong> ไม่มีแท็ก 22 / ไม่มีโน้ต 61 — วัด conversion จากแชทยังทำไม่ได้เต็มที่</li>
+          <li><strong>มีเคสค้างยาว</strong> รอตอบนานสุด ~8 วัน ต้องมีพิธีเคลียร์ WAITING ค้างทุกเช้า</li>
+        </ol>
+      </section>
+
+      <section class="slide" data-slide>
+        <p class="eyebrow">แผน 30 วัน จากตัวเลขจริง</p>
+        <h2>ลำดับงานที่ผูกกับ KPI ปัจจุบัน</h2>
+        <div class="grid-2">
+          <article class="card">
+            <h3>สัปดาห์ 1–2 · ล็อกคิว</h3>
+            <ul>
+              <li>เคลียร์ WAITING ค้างยาว + ห้อง unread เก่า</li>
+              <li>เป้า: ลดรอบรอตอบจาก 184 และกันเคสค้างหลายวัน</li>
+              <li>บังคับมีผู้รับผิดชอบทุกห้องขาย (ลดจาก 281)</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>สัปดาห์ 2–3 · แท็กกรวยขาย</h3>
+            <ul>
+              <li>แท็ก: สนใจซื้อ / ขอราคา / นัดปิด / รอโอน / ปิดได้แล้ว</li>
+              <li>เป้า: ห้องไม่มีแท็กเข้าใกล้ 0 ในห้องที่เปิดดูแล้ว</li>
+              <li>โน้ตเลขออเดอร์ตอนปิดขาย เพื่อเริ่มวัดยอด</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>สัปดาห์ 3 · จัดคนตามข้อมูล</h3>
+            <ul>
+              <li>JAN / NuNa / Beam รับดีลร้อน</li>
+              <li>แก้วใส / N.Ploykaew ลดคิวหรือมี buddy</li>
+              <li>เป้า SLA รวมขยับจาก 80% → 85%+</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>สัปดาห์ 4 · ขยายทราฟฟิกมีเงื่อนไข</h3>
+            <ul>
+              <li>ยิงแคมเปญเมื่อรอตอบลดลงชัด + ownership ครบ</li>
+              <li>เทียบก่อน/หลังแคมเปญด้วย Monitor ช่วงปฏิทิน</li>
+              <li>ถ้าคิวพุ่ง ให้ชะลอบรอดแคสต์ทันที</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="slide slide--dark" data-slide>
+        <p class="eyebrow">สรุปผู้บริหาร</p>
+        <h2>พร้อมขายต่อ — แต่ยังไม่พร้อมเร่งยอดเข้าเต็มสูบ</h2>
+        <div class="grid-2" style="margin-top:1.2rem">
+          <article class="card">
+            <h3>จุดแข็งตอนนี้</h3>
+            <ul>
+                <li>ตอบได้ 82%</li>
+                <li>Median FRT 3 นาที</li>
+                <li>Unread ล่าสุดเหลือ 2 ห้อง</li>
+                <li>มีหัวแถวที่ SLA ดี (JAN 90%, NuNa 92%, Beam 82%)</li>
+              </ul>
+          </article>
+          <article class="card">
+            <h3>ต้องทำก่อนขยายแคมเปญ</h3>
+            <ul>
+              <li>เคลียร์คิวรอ 184 รอบ / เคสค้างยาว</li>
+              <li>มอบหมายเจ้าของห้อง (ลดจาก 281)</li>
+              <li>แท็กกรวยขายให้ครบ</li>
+              <li>ดึงคน WATCH ให้ SLA สูงขึ้น</li>
+            </ul>
+          </article>
+        </div>
+        <p class="meta" style="margin-top:1.6rem">
+          ไฟล์นี้แยกจาก docs/presentations/line-oa-sales-plan.html (แนวทางทั่วไป)
+          · ข้อมูล ณ ช่วง 06–14 ส.ค. 2026 · ← → / F เต็มจอ
+        </p>
+      </section>
+
+    </div>
+
+    <div class="footer">
+      <div>สไลด์ <strong id="page">1</strong> / <span id="total">7</span> · ข้อมูลจริง</div>
+      <div class="dots" id="dots" aria-label="สไลด์"></div>
+      <div class="nav">
+        <button type="button" id="prev">←</button>
+        <button type="button" id="next">→</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll('[data-slide]')];
+    const dots = document.getElementById('dots');
+    const pageEl = document.getElementById('page');
+    const totalEl = document.getElementById('total');
+    let index = 0;
+    totalEl.textContent = String(slides.length);
+    slides.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'ไปสไลด์ ' + (i + 1));
+      b.addEventListener('click', () => show(i));
+      dots.appendChild(b);
+    });
+    function show(i) {
+      index = (i + slides.length) % slides.length;
+      slides.forEach((s, n) => s.classList.toggle('is-active', n === index));
+      [...dots.children].forEach((d, n) => d.classList.toggle('is-active', n === index));
+      pageEl.textContent = String(index + 1);
+    }
+    document.getElementById('prev').addEventListener('click', () => show(index - 1));
+    document.getElementById('next').addEventListener('click', () => show(index + 1));
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); show(index + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); show(index - 1);
+      } else if (e.key === 'Home') show(0);
+      else if (e.key === 'End') show(slides.length - 1);
+      else if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+    });
+    show(0);
+  </script>
+</body>
+</html>

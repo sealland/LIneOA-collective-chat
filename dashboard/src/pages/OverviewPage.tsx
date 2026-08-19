@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   ResponsiveContainer,
   Tooltip,
@@ -16,6 +17,7 @@ import {
   fmtPct,
   type OverviewResponse,
 } from '../lib/api';
+import { dateRangeQuery, formatDateRange } from '../lib/dateRange';
 import { formatAppDateTime } from '../lib/dateTime';
 import { exportSummaryImage } from '../lib/exportSummaryImage';
 import {
@@ -29,7 +31,7 @@ import {
 import { DailySummaryCard } from '../components/DailySummaryCard';
 import { useI18n } from '../lib/i18n';
 
-export function OverviewPage({ date }: { date: string }) {
+export function OverviewPage({ from, to }: { from: string; to: string }) {
   const { t, tip } = useI18n();
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function OverviewPage({ date }: { date: string }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchJson<OverviewResponse>(`/api/overview?date=${date}`)
+    fetchJson<OverviewResponse>(`/api/overview?${dateRangeQuery(from, to)}`)
       .then((d) => {
         if (!cancelled) setData(d);
       })
@@ -56,7 +58,7 @@ export function OverviewPage({ date }: { date: string }) {
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [from, to]);
 
   async function handleExport() {
     if (!summaryRef.current || !data?.kpi) return;
@@ -68,7 +70,11 @@ export function OverviewPage({ date }: { date: string }) {
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => resolve());
       });
-      await exportSummaryImage(summaryRef.current, data.businessDate);
+      await exportSummaryImage(
+        summaryRef.current,
+        data.fromDate ?? from,
+        data.toDate ?? data.businessDate ?? to
+      );
     } catch {
       setExportError(t.exportDailySummaryFail);
     } finally {
@@ -82,7 +88,7 @@ export function OverviewPage({ date }: { date: string }) {
 
   const kpi = data.kpi;
   if (!kpi) {
-    return <EmptyHint>{t.noKpi(date)}</EmptyHint>;
+    return <EmptyHint>{t.noKpi(formatDateRange(from, to))}</EmptyHint>;
   }
 
   const chartData = [
@@ -113,13 +119,15 @@ export function OverviewPage({ date }: { date: string }) {
       </div>
       {exportError ? <ErrorBox message={exportError} /> : null}
 
-      <div className="kpi-grid">
+      <div className="kpi-hero">
         <Metric
-          label={t.activeConversations}
-          value={fmtNum(data.activeConversations, 0)}
-          tip="activeConversations"
+          tone="hero"
+          label={t.responseRate}
+          value={fmtPct(kpi.responseRate)}
+          tip="responseRate"
         />
         <Metric
+          tone="hero"
           label={t.unreadRooms}
           value={fmtNum(kpi.unreadRooms, 0)}
           tip="unreadRooms"
@@ -133,12 +141,17 @@ export function OverviewPage({ date }: { date: string }) {
           }
         />
         <Metric
+          tone="hero"
           label={t.respondedSessions}
           value={fmtNum(kpi.answeredSessions, 0)}
           tip="respondedSessions"
-          hint={t.waitingHint(fmtNum(kpi.waitingSessions, 0))}
         />
-        <Metric label={t.responseRate} value={fmtPct(kpi.responseRate)} tip="responseRate" />
+        <Metric
+          tone="hero"
+          label={t.activeConversations}
+          value={fmtNum(data.activeConversations, 0)}
+          tip="activeConversations"
+        />
       </div>
 
       <div className="kpi-grid">
@@ -157,7 +170,11 @@ export function OverviewPage({ date }: { date: string }) {
           label={t.maxWaiting}
           value={fmtMinutes(kpi.maxWaitingMinutes)}
           tip="maxWaiting"
-          hint={t.waitingHint(fmtNum(kpi.waitingSessions, 0))}
+          hint={
+            data.longestWaitingRoom?.customerName?.trim()
+              ? data.longestWaitingRoom.customerName.trim()
+              : undefined
+          }
         />
       </div>
 
@@ -170,27 +187,27 @@ export function OverviewPage({ date }: { date: string }) {
                 barCategoryGap="28%"
                 margin={{ top: 18, right: 8, left: 0, bottom: 0 }}
               >
-                <CartesianGrid stroke="#d2dce0" vertical={false} strokeDasharray="3 6" />
+                <CartesianGrid stroke="#e4ddd0" vertical={false} strokeDasharray="3 6" />
                 <XAxis
                   dataKey="name"
-                  tick={{ fill: '#5c6e78', fontSize: 12 }}
+                  tick={{ fill: '#6b6458', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fill: '#5c6e78', fontSize: 12 }}
+                  tick={{ fill: '#6b6458', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(11,110,114,0.06)' }}
+                  cursor={{ fill: 'rgba(28, 25, 20, 0.05)' }}
                   contentStyle={{
                     borderRadius: 10,
-                    borderColor: '#d2dce0',
+                    borderColor: '#e4ddd0',
                     fontSize: 12,
                     maxWidth: 280,
-                    background: 'rgba(255,255,255,0.96)',
+                    background: 'rgba(255,252,246,0.98)',
                   }}
                   formatter={(value, _name, item) => {
                     const tipText = (item?.payload as { tip?: string } | undefined)?.tip;
@@ -198,12 +215,24 @@ export function OverviewPage({ date }: { date: string }) {
                     return [String(n), tipText ?? ''];
                   }}
                 />
-                <Bar dataKey="value" fill="#0b6e72" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {chartData.map((row) => (
+                    <Cell
+                      key={row.name}
+                      fill={
+                        row.name === t.chartWaiting
+                          ? '#e8a317'
+                          : row.name === t.chartUnread
+                            ? '#3d8bfd'
+                            : '#1c1914'
+                      }
+                    />
+                  ))}
                   <LabelList
                     dataKey="value"
                     position="top"
                     offset={8}
-                    fill="#0c191f"
+                    fill="#1c1914"
                     fontSize={13}
                     fontFamily="var(--font-mono)"
                     fontWeight={500}

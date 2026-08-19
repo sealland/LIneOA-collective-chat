@@ -1,27 +1,49 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n';
+import { formatDateRangeDisplay } from '../lib/dateRange';
+
+type NightCollectStatus = {
+  enabled: boolean;
+  start: string;
+  end: string;
+  intervalMinutes: number;
+  inWindow: boolean;
+  currentSlot: string | null;
+  nextSlot: string | null;
+  lastFiredSlotKey: string | null;
+  lastStartedAt: string | null;
+  lastError: string | null;
+};
 
 type CollectStatus = {
   phase: 'idle' | 'collecting' | 'kpi' | 'done' | 'error';
   running: boolean;
+  source?: 'manual' | 'night';
   businessDate: string | null;
+  fromDate?: string | null;
+  toDate?: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   message: string | null;
   error: string | null;
   lockHeld: boolean;
+  loginRunning?: boolean;
+  nightCollect?: NightCollectStatus;
 };
 
 type Props = {
-  date: string;
+  from: string;
+  to: string;
   onCompleted?: () => void;
 };
 
-export function CollectButton({ date, onCompleted }: Props) {
+export function CollectButton({ from, to, onCompleted }: Props) {
   const { t, tip } = useI18n();
   const [status, setStatus] = useState<CollectStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const wasRunning = useRef(false);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -37,23 +59,21 @@ export function CollectButton({ date, onCompleted }: Props) {
 
   useEffect(() => {
     void refreshStatus();
-  }, [refreshStatus]);
-
-  useEffect(() => {
-    if (!status?.running) return;
     const id = window.setInterval(() => {
       void refreshStatus().then((s) => {
-        if (s && !s.running && s.phase === 'done') {
+        if (!s) return;
+        if (wasRunning.current && !s.running && s.phase === 'done') {
           onCompleted?.();
         }
+        wasRunning.current = Boolean(s.running);
       });
     }, 3000);
     return () => window.clearInterval(id);
-  }, [status?.running, refreshStatus, onCompleted]);
+  }, [refreshStatus, onCompleted]);
 
   async function handleClick() {
     setLocalError(null);
-    const ok = window.confirm(t.collectConfirm(date));
+    const ok = window.confirm(t.collectConfirm(formatDateRangeDisplay(from, to)));
     if (!ok) return;
 
     setBusy(true);
@@ -61,7 +81,7 @@ export function CollectButton({ date, onCompleted }: Props) {
       const res = await fetch('/api/collect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date }),
+        body: JSON.stringify({ from, to }),
       });
       const body = (await res.json()) as { error?: string; status?: CollectStatus };
       if (!res.ok) {
@@ -78,7 +98,7 @@ export function CollectButton({ date, onCompleted }: Props) {
     }
   }
 
-  const running = Boolean(status?.running) || busy;
+  const running = Boolean(status?.running) || busy || Boolean(status?.loginRunning);
   const phaseLabel =
     status?.phase === 'collecting'
       ? t.collectCollecting
@@ -95,26 +115,37 @@ export function CollectButton({ date, onCompleted }: Props) {
         onClick={() => void handleClick()}
         disabled={running}
         title={tip('collectButton')}
-        className="collect-btn border border-[var(--accent)] bg-[var(--accent)] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-55"
+        className={`collect-btn${running ? ' is-running' : ''}`}
       >
         {phaseLabel}
       </button>
       {status?.running && status.message ? (
-        <p className="collect-wrap__status text-[var(--muted)]" title={status.message}>
+        <p className="collect-wrap__status collect-wrap__status--info" title={status.message}>
           {status.message}
         </p>
       ) : null}
       {status?.phase === 'done' && status.message && !status.running ? (
-        <p className="collect-wrap__status text-[var(--ok)]" title={status.message}>
+        <p className="collect-wrap__status collect-wrap__status--ok" title={status.message}>
           {status.message}
         </p>
       ) : null}
       {(localError || status?.error) && !status?.running ? (
         <p
-          className="collect-wrap__status text-[var(--danger)]"
+          className="collect-wrap__status collect-wrap__status--err"
           title={localError || status?.error || undefined}
         >
           {localError || status?.error}
+        </p>
+      ) : null}
+      {status?.nightCollect?.enabled && !status.running ? (
+        <p
+          className="collect-wrap__status collect-wrap__status--info"
+          title={tip('nightCollect')}
+        >
+          {t.nightCollectHint(
+            `${status.nightCollect.start}–${status.nightCollect.end}`,
+            status.nightCollect.currentSlot || status.nightCollect.nextSlot || '—'
+          )}
         </p>
       ) : null}
     </div>

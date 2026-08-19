@@ -12,8 +12,9 @@ import {
 } from '../components/Shell';
 import type { TipKey } from '../lib/tips';
 import { useI18n } from '../lib/i18n';
+import { dateRangeQuery, formatDateRange } from '../lib/dateRange';
 
-export function QualityPage({ date }: { date: string }) {
+export function QualityPage({ from, to }: { from: string; to: string }) {
   const { t } = useI18n();
   const [data, setData] = useState<QualityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function QualityPage({ date }: { date: string }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchJson<QualityResponse>(`/api/quality?date=${date}`)
+    fetchJson<QualityResponse>(`/api/quality?${dateRangeQuery(from, to)}`)
       .then((d) => {
         if (!cancelled) setData(d);
       })
@@ -45,7 +46,7 @@ export function QualityPage({ date }: { date: string }) {
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [from, to]);
 
   if (loading) return <Loading />;
   if (error) return <ErrorBox message={error} />;
@@ -56,7 +57,9 @@ export function QualityPage({ date }: { date: string }) {
       <div className="page-toolbar">
         <div>
           <h2>{t.qualityTitle}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t.qualitySubtitle(date)}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {t.qualitySubtitle(formatDateRange(from, to))}
+          </p>
         </div>
       </div>
 
@@ -65,6 +68,11 @@ export function QualityPage({ date }: { date: string }) {
         <Metric label={t.readInspected} value={fmtNum(data.readRoomsInspected, 0)} tip="readInspected" />
         <Metric label={t.unreadSkipped} value={fmtNum(data.unreadRoomsSkipped, 0)} tip="unreadSkipped" />
         <Metric label={t.failedRooms} value={fmtNum(data.failedRooms, 0)} tip="failedRooms" />
+        <Metric
+          label={t.identityRenamedRooms}
+          value={fmtNum(data.identityRenamedRooms, 0)}
+          tip="identityRenamedRooms"
+        />
       </div>
 
       <div className="kpi-grid">
@@ -154,7 +162,7 @@ export function QualityPage({ date }: { date: string }) {
                       )}
                       {r.screenshotPath ? (
                         <a
-                          className="mt-1 inline-block text-[var(--accent)] underline"
+                          className="mt-1 inline-block text-[var(--accent-deep)] underline"
                           href={`/screenshots/${r.screenshotPath.replace(/^.*[/\\]/, '')}`}
                           target="_blank"
                           rel="noreferrer"

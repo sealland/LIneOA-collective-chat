@@ -4,8 +4,14 @@ export const messages = {
   th: {
     brandEyebrow: 'Retail Sales Ops',
     brandTitle: 'LINE OA Daily Monitor',
-    brandSubtitle: 'KPI การตอบแชท และสถานะการเก็บข้อมูลของวันที่เลือก',
-    businessDate: 'วันธุรกิจ',
+    brandSubtitle: 'KPI การตอบแชท และสถานะการเก็บข้อมูลของช่วงวันที่เลือก',
+    dateRange: 'ช่วงวันที่',
+    dateFrom: 'จาก',
+    dateTo: 'ถึง',
+    calPrevMonth: 'เดือนก่อน',
+    calNextMonth: 'เดือนถัดไป',
+    calPickStart: 'คลิกวันเริ่มต้น',
+    calPickEnd: 'คลิกวันสิ้นสุด',
     navOverview: 'ภาพรวม',
     navEmployees: 'พนักงาน',
     navConversations: 'ห้องแชท',
@@ -17,9 +23,19 @@ export const messages = {
     collectCollecting: 'กำลังเก็บข้อมูล…',
     collectKpi: 'กำลังคำนวณ KPI…',
     collectStarting: 'กำลังเริ่ม…',
-    collectConfirm: (date: string) =>
-      `เก็บข้อมูลใหม่จาก LINE OA สำหรับวันที่ ${date}?\n\nระบบจะเปิดเบราว์เซอร์ดึงรายการแชท + รายละเอียดห้องที่อ่านแล้ว แล้วคำนวณ KPI ของวันนี้\nอาจใช้เวลาหลายนาที และจะไม่เปิดห้องที่ยังไม่อ่าน`,
+    collectConfirm: (rangeLabel: string) =>
+      `เก็บข้อมูลใหม่จาก LINE OA แล้วคำนวณ KPI ช่วง ${rangeLabel}?\n\nระบบจะดึงรายการแชท + ห้องที่อ่านแล้ว (สถานะล่าสุด) แล้วคำนวณ KPI ทีละวันทั้งช่วง\nอาจใช้เวลาหลายนาที และจะไม่เปิดห้องที่ยังไม่อ่าน\n\nหมายเหตุ: unread/รายการห้องย้อนวันอาจไม่ครบเท่าเก็บทุกวัน`,
     collectStartFail: (status: number) => `เริ่มไม่สำเร็จ (${status})`,
+    headlessLabel: 'ซ่อนหน้าต่างเก็บข้อมูล',
+    headlessSaveFail: 'บันทึกโหมดเก็บข้อมูลไม่สำเร็จ',
+    loginLine: 'Login LINE ใหม่',
+    loginLineWaiting: 'รอเข้าสู่ระบบ…',
+    loginLineConfirm:
+      'จะเปิดเบราว์เซอร์ให้เข้าสู่ระบบ LINE OA\n\nเข้าให้เสร็จในหน้าต่างนั้น ระบบจะบันทึก session เอง (ไม่ใช้ headless)',
+    loginLineFail: (status: number) => `เริ่ม login ไม่สำเร็จ (${status})`,
+    nightCollectHint: (window: string, nextSlot: string) =>
+      `เก็บอัตโนมัติกลางคืน ${window} ทุก 2 ชม. · รอบถัดไป ${nextSlot}`,
+    nightCollectOff: 'เก็บอัตโนมัติกลางคืนปิดอยู่',
 
     // Overview
     activeConversations: 'ห้องแชทที่เจอ',
@@ -51,8 +67,8 @@ export const messages = {
     chartAnswered: 'ตอบแล้ว',
     chartWaiting: 'รอตอบ',
     chartUnread: 'ยังไม่อ่าน',
-    noKpi: (date: string) =>
-      `ยังไม่มีสรุป KPI ของ ${date} — รัน npm run kpi:daily -- --date=${date} หรือกดเก็บข้อมูลใหม่`,
+    noKpi: (rangeLabel: string) =>
+      `ยังไม่มีสรุป KPI ของ ${rangeLabel} — รัน npm run kpi:daily หรือกดเก็บข้อมูลใหม่`,
     dailySummaryTitle: 'สรุปรายวัน LINE OA',
     dailySummaryExportedAt: 'ส่งออกเมื่อ',
     exportDailySummary: 'ส่งออกสรุปรายวัน (PNG)',
@@ -73,14 +89,15 @@ export const messages = {
 
     // Employees
     empTitle: 'ผลงานพนักงาน',
-    empSubtitle: (date: string) => `ผู้ตอบแรกและเวลารอตอบอย่างเป็นทางการของ ${date}`,
+    empSubtitle: (rangeLabel: string) =>
+      `ผู้ตอบแรกและเวลารอตอบอย่างเป็นทางการของ ${rangeLabel}`,
     filterName: 'กรองชื่อ…',
     allConcern: 'ทุกระดับ',
     employee: 'พนักงาน',
     responded: 'ตอบแล้ว',
     msgsSent: 'ข้อความที่ส่ง',
     concern: 'ระดับ',
-    noEmployees: 'ไม่มีข้อมูลพนักงานในวันนี้',
+    noEmployees: 'ไม่มีข้อมูลพนักงานในช่วงนี้',
 
     // Conversations
     convTitle: 'ติดตามห้องแชท',
@@ -88,10 +105,14 @@ export const messages = {
     searchConv: 'ค้นหาลูกค้า, พนักงาน, แท็ก…',
     unreadOnly: 'เฉพาะยังไม่อ่าน',
     waitingOnly: 'เฉพาะรอตอบ',
+    newCustomerOnly: 'เฉพาะลูกค้าใหม่',
+    newCustomerBadge: 'ลูกค้าใหม่',
+    newCustomerRemark:
+      'ข้อจำกัด: “ลูกค้าใหม่” หมายถึงระบบพบข้อความต้อนรับ “ขอบคุณที่เป็นเพื่อนกับ…” ในช่วงวันที่เลือก จึงอาจนับไม่ครบหากห้องยัง unread, ข้อความไม่ได้ถูกเก็บ หรือ LINE เปลี่ยนข้อความต้อนรับ',
     convTabAll: 'ทั้งหมด',
     convTabLongWait: 'รอตอบนาน',
     waitingDuration: 'รอมาแล้ว',
-    noLongWait: 'ไม่มีห้องที่รอตอบนานในวันนี้',
+    noLongWait: 'ไม่มีห้องที่รอตอบนานในช่วงนี้',
     customer: 'ลูกค้า',
     lastMessage: 'ข้อความล่าสุด',
     unread: 'ยังไม่อ่าน',
@@ -104,7 +125,7 @@ export const messages = {
     inspected: 'เปิดดูแล้ว',
     skipped: 'ข้าม',
     skippedMaxRooms: 'ข้าม — ครบโควต้าเปิดห้อง',
-    noConversations: 'ไม่พบห้องแชทตามตัวกรองของวันนี้',
+    noConversations: 'ไม่พบห้องแชทตามตัวกรองในช่วงนี้',
     noNoteShort: 'ไม่มีโน้ต',
 
     // Detail panel
@@ -121,8 +142,8 @@ export const messages = {
     notes: 'โน้ต',
     noNotesUnread: 'ไม่มี เพราะยังไม่เปิดห้อง',
     noNotes: 'ไม่มีโน้ต',
-    sessionsToday: 'รอบตอบกลับวันนี้',
-    noSessions: 'ไม่มีรอบสนทนาที่คำนวณได้ในวันนี้',
+    sessionsToday: 'รอบตอบกลับในช่วงนี้',
+    noSessions: 'ไม่มีรอบสนทนาที่คำนวณได้ในช่วงนี้',
     sessionN: (n: number) => `รอบ #${n}`,
     customerMsg: 'ลูกค้าทัก',
     employeeReply: 'พนักงานตอบ',
@@ -144,10 +165,12 @@ export const messages = {
 
     // Quality
     qualityTitle: 'ความครอบคลุมการเก็บข้อมูล',
-    qualitySubtitle: (date: string) => `รวมจากรอบเก็บข้อมูลที่เริ่มในวันที่ ${date}`,
+    qualitySubtitle: (rangeLabel: string) =>
+      `รวมจากรอบเก็บข้อมูลที่เริ่มในช่วง ${rangeLabel}`,
     discoveredRooms: 'ห้องที่เจอ',
     readInspected: 'เปิดดูแล้ว',
     unreadSkipped: 'ข้ามเพราะยังไม่อ่าน',
+    identityRenamedRooms: 'ห้องที่ถูกเปลี่ยนชื่อ/รวมตัวตน',
     failedRooms: 'เก็บไม่สำเร็จ',
     messagesCollected: 'ข้อความที่เก็บได้',
     empNameDetection: 'อ่านชื่อพนักงานได้',
@@ -156,8 +179,8 @@ export const messages = {
     runId: 'เลขรอบ',
     runtime: 'เวลาที่ใช้',
     noSuccessRun: 'ยังไม่มีรอบที่สำเร็จ',
-    runsOnDate: 'รอบเก็บข้อมูลวันนี้',
-    noRuns: 'ไม่มีรอบเก็บข้อมูลที่เริ่มในวันนี้',
+    runsOnDate: 'รอบเก็บข้อมูลในช่วงนี้',
+    noRuns: 'ไม่มีรอบเก็บข้อมูลที่เริ่มในช่วงนี้',
     run: 'รอบ',
     rooms: 'ห้อง',
     messages: 'ข้อความ',
@@ -173,8 +196,14 @@ export const messages = {
   en: {
     brandEyebrow: 'Retail Sales Ops',
     brandTitle: 'LINE OA Daily Monitor',
-    brandSubtitle: 'Response KPIs and collection health for the selected business day.',
-    businessDate: 'Date',
+    brandSubtitle: 'Response KPIs and collection health for the selected date range.',
+    dateRange: 'Date range',
+    dateFrom: 'From',
+    dateTo: 'To',
+    calPrevMonth: 'Previous month',
+    calNextMonth: 'Next month',
+    calPickStart: 'Click a start date',
+    calPickEnd: 'Click an end date',
     navOverview: 'Overview',
     navEmployees: 'Employees',
     navConversations: 'Conversations',
@@ -186,9 +215,19 @@ export const messages = {
     collectCollecting: 'Collecting…',
     collectKpi: 'Computing KPI…',
     collectStarting: 'Starting…',
-    collectConfirm: (date: string) =>
-      `Collect fresh data from LINE OA for ${date}?\n\nThis opens a browser, scrapes the chat list + read rooms, then recomputes KPI.\nIt may take several minutes. Unread rooms are never opened.`,
+    collectConfirm: (rangeLabel: string) =>
+      `Collect fresh LINE OA data and recompute KPI for ${rangeLabel}?\n\nThis scrapes the chat list + read rooms (latest state), then runs KPI for each day in the range.\nIt may take several minutes. Unread rooms are never opened.\n\nNote: historical unread/room lists may be incomplete vs daily collects.`,
     collectStartFail: (status: number) => `Could not start (${status})`,
+    headlessLabel: 'Hide collect browser',
+    headlessSaveFail: 'Could not save collect mode',
+    loginLine: 'Login LINE again',
+    loginLineWaiting: 'Waiting for login…',
+    loginLineConfirm:
+      'A browser window will open for LINE OA login.\n\nFinish signing in there — the session is saved automatically (never headless).',
+    loginLineFail: (status: number) => `Could not start login (${status})`,
+    nightCollectHint: (window: string, nextSlot: string) =>
+      `Night auto-collect ${window} every 2h · next ${nextSlot}`,
+    nightCollectOff: 'Night auto-collect is off',
 
     activeConversations: 'Active conversations',
     unreadRooms: 'Unread rooms',
@@ -219,8 +258,8 @@ export const messages = {
     chartAnswered: 'Answered',
     chartWaiting: 'Waiting',
     chartUnread: 'Unread',
-    noKpi: (date: string) =>
-      `No KPI summary for ${date}. Run npm run kpi:daily -- --date=${date} or click Collect data.`,
+    noKpi: (rangeLabel: string) =>
+      `No KPI summary for ${rangeLabel}. Run npm run kpi:daily or click Collect data.`,
     dailySummaryTitle: 'LINE OA Daily Summary',
     dailySummaryExportedAt: 'Exported at',
     exportDailySummary: 'Export daily summary (PNG)',
@@ -240,24 +279,29 @@ export const messages = {
     reportExcludedNote: (n: string) => `${n} internal room(s) excluded`,
 
     empTitle: 'Employee performance',
-    empSubtitle: (date: string) => `First-response attribution and official FRT for ${date}.`,
+    empSubtitle: (rangeLabel: string) =>
+      `First-response attribution and official FRT for ${rangeLabel}.`,
     filterName: 'Filter name…',
     allConcern: 'All concern',
     employee: 'Employee',
     responded: 'Responded',
     msgsSent: 'Msgs sent',
     concern: 'Concern',
-    noEmployees: 'No employee KPI rows for this date.',
+    noEmployees: 'No employee KPI rows for this range.',
 
     convTitle: 'Conversation monitoring',
     convSubtitle: 'Click a row for details. Unread rooms are never opened.',
     searchConv: 'Search customer, agent, tag…',
     unreadOnly: 'Unread only',
     waitingOnly: 'Waiting only',
+    newCustomerOnly: 'New customers only',
+    newCustomerBadge: 'New',
+    newCustomerRemark:
+      'Limitation: “New customer” means the system found the “Thank you for becoming friends with…” welcome wording in the selected range. Counts may be incomplete when a room is unread, the message was not collected, or LINE changes the wording.',
     convTabAll: 'All',
     convTabLongWait: 'Long wait',
     waitingDuration: 'Waiting',
-    noLongWait: 'No long-wait rooms for this date.',
+    noLongWait: 'No long-wait rooms for this range.',
     customer: 'Customer',
     lastMessage: 'Last message',
     unread: 'Unread',
@@ -270,7 +314,7 @@ export const messages = {
     inspected: 'Inspected',
     skipped: 'Skipped',
     skippedMaxRooms: 'Skipped — room open quota reached',
-    noConversations: 'No conversations found for filters on this date.',
+    noConversations: 'No conversations found for filters in this range.',
     noNoteShort: 'No note',
 
     conversation: 'Conversation',
@@ -286,8 +330,8 @@ export const messages = {
     notes: 'Notes',
     noNotesUnread: 'None — room was not opened',
     noNotes: 'No notes',
-    sessionsToday: 'Response sessions today',
-    noSessions: 'No sessions computed for this date',
+    sessionsToday: 'Response sessions in range',
+    noSessions: 'No sessions computed for this range',
     sessionN: (n: number) => `Session #${n}`,
     customerMsg: 'Customer message',
     employeeReply: 'Employee reply',
@@ -308,10 +352,12 @@ export const messages = {
     msgLocation: '[Location]',
 
     qualityTitle: 'Collection coverage',
-    qualitySubtitle: (date: string) => `Aggregated from collector runs started on ${date}.`,
+    qualitySubtitle: (rangeLabel: string) =>
+      `Aggregated from collector runs started in ${rangeLabel}.`,
     discoveredRooms: 'Discovered rooms',
     readInspected: 'Read inspected',
     unreadSkipped: 'Unread skipped',
+    identityRenamedRooms: 'Renamed/merged rooms',
     failedRooms: 'Failed rooms',
     messagesCollected: 'Messages collected',
     empNameDetection: 'Employee name detection',
@@ -320,8 +366,8 @@ export const messages = {
     runId: 'Run id',
     runtime: 'Runtime',
     noSuccessRun: 'No successful run recorded yet.',
-    runsOnDate: 'Runs on this date',
-    noRuns: 'No collector runs started on this business date.',
+    runsOnDate: 'Runs in this range',
+    noRuns: 'No collector runs started in this date range.',
     run: 'Run',
     rooms: 'Rooms',
     messages: 'Messages',

@@ -9,6 +9,7 @@ import {
 import { ConcernBadge, EmptyHint, ErrorBox, InfoTip, Loading } from '../components/Shell';
 import type { TipKey } from '../lib/tips';
 import { useI18n } from '../lib/i18n';
+import { dateRangeQuery, formatDateRange } from '../lib/dateRange';
 
 type SortKey =
   | 'employeeName'
@@ -19,7 +20,7 @@ type SortKey =
   | 'messagesSent'
   | 'concernLevel';
 
-export function EmployeesPage({ date }: { date: string }) {
+export function EmployeesPage({ from, to }: { from: string; to: string }) {
   const { t } = useI18n();
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function EmployeesPage({ date }: { date: string }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchJson<{ employees: EmployeeRow[] }>(`/api/employees?date=${date}`)
+    fetchJson<{ employees: EmployeeRow[] }>(`/api/employees?${dateRangeQuery(from, to)}`)
       .then((d) => {
         if (!cancelled) setRows(d.employees);
       })
@@ -56,7 +57,7 @@ export function EmployeesPage({ date }: { date: string }) {
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [from, to]);
 
   const visible = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -95,7 +96,7 @@ export function EmployeesPage({ date }: { date: string }) {
       <div className="page-toolbar">
         <div>
           <h2>{t.empTitle}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t.empSubtitle(date)}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.empSubtitle(formatDateRange(from, to))}</p>
         </div>
         <div className="filters">
           <input

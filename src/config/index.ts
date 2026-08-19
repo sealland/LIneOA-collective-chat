@@ -40,6 +40,14 @@ const envSchema = z.object({
     .string()
     .transform((v) => v === 'true')
     .default('false'),
+  /** Auto-collect overnight while `npm run server` is up. */
+  NIGHT_COLLECT_ENABLED: z
+    .string()
+    .transform((v) => v !== 'false')
+    .default('true'),
+  NIGHT_COLLECT_START: z.string().default('21:00'),
+  NIGHT_COLLECT_END: z.string().default('06:00'),
+  NIGHT_COLLECT_INTERVAL_MINUTES: z.coerce.number().default(120),
   MAX_SCROLL_ATTEMPTS: z.coerce.number().default(500),
   NO_NEW_ITEM_LIMIT: z.coerce.number().default(3),
   SCROLL_WAIT_MS: z.coerce.number().default(800),

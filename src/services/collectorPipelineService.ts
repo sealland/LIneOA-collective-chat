@@ -19,6 +19,10 @@ import { insertSnapshotsBatch } from '../database/repositories/snapshotRepositor
 import { insertConversationDetailsBatch } from '../database/repositories/conversationDetailRepository.js';
 import { upsertMessagesBatch } from '../database/repositories/messageRepository.js';
 import { getBackfillCandidates } from '../database/repositories/backfillRepository.js';
+import {
+  detectAndMergeIdentities,
+  mergeChatKeys,
+} from '../database/repositories/identityRepository.js';
 import { createModuleLogger } from '../logger/index.js';
 import type {
   CollectorRunStatus,
@@ -81,6 +85,15 @@ export async function runCollectorPipeline(): Promise<CollectorPipelineResult> {
     // --- Phase 2: list ---
     const collection = await collectChatListWithScroll(session.page);
 
+    if (!dryRun) {
+      try {
+        await detectAndMergeIdentities(collection.items);
+      } catch (mergeErr) {
+        const msg = mergeErr instanceof Error ? mergeErr.message : String(mergeErr);
+        log.warn('List-pass identity merge failed — continuing', { error: msg });
+      }
+    }
+
     // --- Phase 3 + 4: details + messages (read rooms only) ---
     let detailResult = collection.items.length
       ? await collectConversationDetails(session.page, collection.items)
@@ -101,7 +114,7 @@ export async function runCollectorPipeline(): Promise<CollectorPipelineResult> {
 
     if (!dryRun && config.BACKFILL_MAX_ROOMS > 0) {
       try {
-        const candidates = await getBackfillCandidates(discoveredKeys);
+        const candidates = await getBackfillCandidates(collection.items);
         if (candidates.length > 0) {
           const backfill = await collectBackfillRooms(
             session.page,
@@ -123,10 +136,23 @@ export async function runCollectorPipeline(): Promise<CollectorPipelineResult> {
               allItems.push(item);
             }
           }
+          for (const merge of backfill.merges) {
+            try {
+              await mergeChatKeys(merge.fromChatKey, merge.toChatKey, merge.reason);
+            } catch (mergeErr) {
+              const msg = mergeErr instanceof Error ? mergeErr.message : String(mergeErr);
+              log.warn('Backfill identity merge failed', {
+                from: merge.fromChatKey.slice(0, 64),
+                to: merge.toChatKey.slice(0, 64),
+                error: msg,
+              });
+            }
+          }
           log.info('Backfill pass complete', {
             candidates: candidates.length,
             inspected: backfill.inspectedRooms,
             messages: backfill.messages.length,
+            merges: backfill.merges.length,
           });
         }
       } catch (backfillErr) {
