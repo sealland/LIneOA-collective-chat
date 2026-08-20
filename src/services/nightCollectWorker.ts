@@ -4,6 +4,7 @@ import { config } from '../config/index.js';
 import { createModuleLogger } from '../logger/index.js';
 import { getCollectJobStatus, startCollectJob } from './collectJobService.js';
 import { isLoginJobRunning } from './jobFlags.js';
+import { storageStateExists } from '../automation/auth/sessionManager.js';
 import {
   currentNightSlot,
   isInNightWindow,
@@ -106,6 +107,11 @@ function tick(): void {
   const slot = currentNightSlot(now, schedule);
   if (!slot) return;
   if (!shouldFireNightSlot(slot, fileState.lastFiredSlotKey)) return;
+
+  if (!storageStateExists()) {
+    log.info('Night collect skipped — no LINE session file');
+    return;
+  }
 
   const status = getCollectJobStatus();
   if (status.running || status.lockHeld || isLoginJobRunning()) {

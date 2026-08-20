@@ -4,7 +4,6 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { type TipKey } from '../lib/tips';
 import { useI18n } from '../lib/i18n';
 import { CollectButton } from './CollectButton';
-import { CollectorControls } from './CollectorControls';
 import { DateRangePicker } from './DateRangePicker';
 
 /** Hover/focus tooltip — portaled to body so overflow parents don't clip it. */
@@ -142,6 +141,15 @@ function IconPulse() {
   );
 }
 
+function IconSettings() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    </svg>
+  );
+}
+
 type Props = {
   from: string;
   to: string;
@@ -160,6 +168,7 @@ export function Shell({ from, to, dates, onRangeChange, onCollectCompleted, chil
     { to: '/employees', label: t.navEmployees, icon: <IconPeople /> },
     { to: '/conversations', label: t.navConversations, icon: <IconChat /> },
     { to: '/quality', label: t.navQuality, icon: <IconPulse /> },
+    { to: '/settings', label: t.navSettings, icon: <IconSettings /> },
   ];
 
   return (
@@ -204,7 +213,6 @@ export function Shell({ from, to, dates, onRangeChange, onCollectCompleted, chil
               onRangeChange={onRangeChange}
             />
           </div>
-          <CollectorControls />
           <CollectButton from={from} to={to} onCompleted={onCollectCompleted} />
         </div>
       </aside>

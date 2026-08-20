@@ -13,6 +13,11 @@ import {
   setCollectorHeadless,
 } from '../../services/collectorSettingsService.js';
 import { getLoginJobStatus, startLoginJob } from '../../services/loginJobService.js';
+import {
+  getSessionStatus,
+  probeCurrentSession,
+  uploadSession,
+} from '../../services/sessionUploadService.js';
 import { createModuleLogger } from '../../logger/index.js';
 import { normalizeDateRange } from '../../utils/dateRange.js';
 import { Router } from 'express';
@@ -119,18 +124,31 @@ export function createApiRouter(): Router {
     }
   });
 
-  router.get('/collect/status', (_req, res) => {
-    res.json({
-      ...getCollectJobStatus(),
-      nightCollect: getNightCollectStatus(),
-    });
+  router.get('/collect/status', async (_req, res) => {
+    try {
+      res.json({
+        ...getCollectJobStatus(),
+        nightCollect: getNightCollectStatus(),
+        session: await getSessionStatus(),
+      });
+    } catch (err) {
+      log.error('collect status failed', { err });
+      res.status(500).json({ error: 'Failed to load collect status' });
+    }
   });
 
-  router.get('/collector/settings', (_req, res) => {
-    res.json({
-      headless: getCollectorHeadless(),
-      login: getLoginJobStatus(),
-    });
+  router.get('/collector/settings', async (_req, res) => {
+    try {
+      const session = await getSessionStatus();
+      res.json({
+        headless: getCollectorHeadless(),
+        login: getLoginJobStatus(),
+        session,
+      });
+    } catch (err) {
+      log.error('collector settings failed', { err });
+      res.status(500).json({ error: 'Failed to load collector settings' });
+    }
   });
 
   router.put('/collector/settings', (req, res) => {
@@ -147,6 +165,66 @@ export function createApiRouter(): Router {
 
   router.get('/login/status', (_req, res) => {
     res.json(getLoginJobStatus());
+  });
+
+  router.get('/session/status', async (_req, res) => {
+    try {
+      res.json(await getSessionStatus());
+    } catch (err) {
+      log.error('session status failed', { err });
+      res.status(500).json({ error: 'Failed to load session status' });
+    }
+  });
+
+  router.post('/session/upload', async (req, res) => {
+    const token =
+      typeof req.body?.token === 'string'
+        ? req.body.token
+        : typeof req.headers['x-session-token'] === 'string'
+          ? req.headers['x-session-token']
+          : null;
+    const storageState = req.body?.storageState;
+    if (!storageState || typeof storageState !== 'object') {
+      res.status(400).json({ error: 'storageState is required' });
+      return;
+    }
+
+    try {
+      const result = await uploadSession(storageState, {
+        token,
+        clientIp: req.ip ?? req.socket.remoteAddress ?? null,
+      });
+      if (!result.ok) {
+        res.status(result.probeOk === false ? 422 : 403).json({
+          error: result.error,
+          probeOk: result.probeOk,
+        });
+        return;
+      }
+      res.json({
+        ok: true,
+        message: 'บันทึก session LINE แล้ว',
+        probeOk: result.probeOk,
+        session: result.status,
+      });
+    } catch (err) {
+      log.error('session upload failed', { err });
+      res.status(500).json({ error: 'Failed to upload session' });
+    }
+  });
+
+  router.post('/session/probe', async (_req, res) => {
+    try {
+      const result = await probeCurrentSession();
+      res.status(result.ok ? 200 : 422).json({
+        ok: result.ok,
+        error: result.error,
+        session: result.status,
+      });
+    } catch (err) {
+      log.error('session probe failed', { err });
+      res.status(500).json({ error: 'Failed to probe session' });
+    }
   });
 
   router.post('/login', (_req, res) => {

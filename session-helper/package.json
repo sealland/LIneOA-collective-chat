@@ -1,0 +1,12 @@
+{
+  "name": "line-oa-connect-helper",
+  "private": true,
+  "description": "Desktop helper — one button LINE login + session upload",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

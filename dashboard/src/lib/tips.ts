@@ -11,6 +11,12 @@ const tipsTh = {
     'เปิด = เก็บข้อมูลแบบไม่โชว์หน้าต่างเบราว์เซอร์ (หลังบ้าน) · ปิด = โชว์ Playwright ตอนเก็บ',
   loginLineButton:
     'เปิดเบราว์เซอร์ (ไม่ headless) ให้เข้าสู่ระบบ LINE OA ใหม่ แล้วบันทึก session ไว้ใช้ตอนเก็บข้อมูล',
+  sessionUpload:
+    'อัปโหลดไฟล์ storage-state.json จากเครื่อง admin (npm run login:export) สำหรับ production ที่ server ไม่มี GUI',
+  sessionToken:
+    'รหัสลับจาก SESSION_UPLOAD_TOKEN ใน .env ของ server — ใช้ป้องกันการอัปโหลด session โดยไม่ได้รับอนุญาต',
+  sessionProbe:
+    'เปิด LINE OA แบบ headless เพื่อตรวจว่า session ปัจจุบันเข้า chat ได้จริง (ใช้เวลา ~10–30 วินาที)',
   activeConversations: 'จำนวนห้องแชทที่ไม่ซ้ำที่ระบบเจอในรายการในช่วงวันที่เลือก',
   unreadRooms:
     'จำนวนห้องที่ยังไม่อ่าน ตามสถานะล่าสุดที่ระบบเก็บได้ถึงวันสิ้นสุดช่วง (ใกล้เคียงที่เห็นบน LINE ตอนเก็บล่าสุด) — ไม่นับห้องที่เคย unread แล้วอ่านไปแล้ว',
@@ -89,6 +95,12 @@ const tipsEn: { [K in keyof typeof tipsTh]: string } = {
     'On = collect without a visible browser window. Off = show Playwright while collecting.',
   loginLineButton:
     'Opens a headed browser to log into LINE OA again and save a new session for collect.',
+  sessionUpload:
+    'Upload storage-state.json from an admin machine (npm run login:export) when the server has no GUI.',
+  sessionToken:
+    'Secret from SESSION_UPLOAD_TOKEN in the server .env — prevents unauthorized session uploads.',
+  sessionProbe:
+    'Opens LINE OA headless to verify the current session can reach the chat page (~10–30s).',
   activeConversations: 'Distinct chat rooms the system saw in the selected date range.',
   unreadRooms:
     'Rooms still unread in the latest snapshot through the end date (close to LINE at last collect). Does not include rooms that were unread earlier then read.',

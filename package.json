@@ -7,6 +7,9 @@
   "scripts": {
     "build": "tsc",
     "login": "tsx src/scripts/login.ts",
+    "login:export": "tsx src/scripts/loginExport.ts",
+    "line-oa-connect": "tsx src/scripts/lineOaConnect.ts",
+    "line-oa-connect:gui": "npm --prefix session-helper start",
     "inspect:chat-list": "tsx src/scripts/inspectChatList.ts",
     "collect:chat-list": "tsx src/scripts/collectChatList.ts",
     "collect:snapshots": "tsx src/scripts/collectSnapshots.ts",
@@ -21,6 +24,8 @@
     "test:dateRange": "tsx src/tests/dateRange.check.ts",
     "test:newCustomer": "tsx src/tests/newCustomer.check.ts",
     "test:nightCollect": "tsx src/tests/nightCollect.check.ts",
+    "test:sessionUpload": "tsx src/tests/sessionUpload.check.ts",
+    "test:lineOaConnect": "tsx src/tests/lineOaConnectConfig.check.ts",
     "kpi:daily": "tsx src/scripts/computeDailyKpi.ts",
     "inspect:dom": "tsx src/scripts/inspectDom.ts",
     "server": "tsx src/server/index.ts",

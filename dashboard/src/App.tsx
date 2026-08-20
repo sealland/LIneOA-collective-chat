@@ -6,6 +6,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { ConversationsPage } from './pages/ConversationsPage';
 import { QualityPage } from './pages/QualityPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { fetchJson } from './lib/api';
 import { normalizeDateRange } from './lib/dateRange';
 
@@ -69,6 +70,7 @@ export default function App() {
           path="/quality"
           element={<QualityPage key={`q-${rangeKey}`} from={from} to={to} />}
         />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </Shell>
   );

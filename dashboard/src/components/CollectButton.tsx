@@ -15,6 +15,15 @@ type NightCollectStatus = {
   lastError: string | null;
 };
 
+type SessionStatus = {
+  exists: boolean;
+  readyForCollect: boolean;
+  needsAttention: boolean;
+  authRequiredFromLastCollect: boolean;
+  staleWarning: boolean;
+  ageDays: number | null;
+};
+
 type CollectStatus = {
   phase: 'idle' | 'collecting' | 'kpi' | 'done' | 'error';
   running: boolean;
@@ -29,6 +38,7 @@ type CollectStatus = {
   lockHeld: boolean;
   loginRunning?: boolean;
   nightCollect?: NightCollectStatus;
+  session?: SessionStatus;
 };
 
 type Props = {
@@ -99,6 +109,14 @@ export function CollectButton({ from, to, onCompleted }: Props) {
   }
 
   const running = Boolean(status?.running) || busy || Boolean(status?.loginRunning);
+  const collectBlocked = Boolean(status?.session && !status.session.readyForCollect);
+  const sessionBanner = status?.session?.authRequiredFromLastCollect
+    ? t.sessionAuthRequired
+    : !status?.session?.exists
+      ? t.sessionMissing
+      : status.session.staleWarning && status.session.ageDays != null
+        ? t.sessionStale(status.session.ageDays)
+        : null;
   const phaseLabel =
     status?.phase === 'collecting'
       ? t.collectCollecting
@@ -110,11 +128,14 @@ export function CollectButton({ from, to, onCompleted }: Props) {
 
   return (
     <div className="collect-wrap">
+      {sessionBanner && !running ? (
+        <p className="collect-wrap__status collect-wrap__status--err">{sessionBanner}</p>
+      ) : null}
       <button
         type="button"
         onClick={() => void handleClick()}
-        disabled={running}
-        title={tip('collectButton')}
+        disabled={running || collectBlocked}
+        title={collectBlocked ? t.sessionCollectBlocked : tip('collectButton')}
         className={`collect-btn${running ? ' is-running' : ''}`}
       >
         {phaseLabel}

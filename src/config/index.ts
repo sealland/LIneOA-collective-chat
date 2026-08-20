@@ -84,6 +84,17 @@ const envSchema = z.object({
    */
   OUTBOUND_SELF_SENDER_NAME: z.string().optional().default(''),
   SESSION_IDLE_MINUTES: z.coerce.number().default(30),
+  /** upload | server-browser | both — how dashboard exposes LINE login */
+  SESSION_LOGIN_MODE: z.enum(['upload', 'server-browser', 'both']).default('both'),
+  /** Required for POST /api/session/upload (empty = upload disabled) */
+  SESSION_UPLOAD_TOKEN: z.string().optional().default(''),
+  /** Headless probe chat page after session upload */
+  SESSION_PROBE_ON_UPLOAD: z
+    .string()
+    .transform((v) => v !== 'false')
+    .default('true'),
+  /** Warn on dashboard when session meta age exceeds this many days */
+  SESSION_MAX_AGE_DAYS: z.coerce.number().default(14),
   KPI_MIN_TIME_CONFIDENCE: z
     .enum(['HIGH', 'MEDIUM', 'LOW'])
     .default('MEDIUM'),

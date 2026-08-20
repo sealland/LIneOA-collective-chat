@@ -1,0 +1,4 @@
+{
+  "serverUrl": "http://127.0.0.1:3000",
+  "uploadToken": "ใส่ SESSION_UPLOAD_TOKEN จาก .env ของ server"
+}

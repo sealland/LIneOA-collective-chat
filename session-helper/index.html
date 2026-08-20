@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LINE OA Connect</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: #f3f0e8;
+        color: #1c1914;
+        padding: 1.25rem 1.35rem 1.5rem;
+      }
+      h1 {
+        margin: 0 0 0.35rem;
+        font-size: 1.15rem;
+      }
+      p.lede {
+        margin: 0 0 1rem;
+        font-size: 0.8125rem;
+        color: #6b6458;
+        line-height: 1.45;
+      }
+      ol {
+        margin: 0 0 1rem;
+        padding-left: 1.15rem;
+        font-size: 0.8125rem;
+        color: #3d3830;
+        line-height: 1.5;
+      }
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        cursor: pointer;
+        background: #c4a574;
+        color: #1c1914;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      button.secondary {
+        margin-top: 0.5rem;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        font-weight: 600;
+      }
+      #status {
+        margin-top: 0.85rem;
+        min-height: 3rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+      #status.ok {
+        border-color: #86efac;
+        background: #f0fdf4;
+        color: #166534;
+      }
+      #status.err {
+        border-color: #fca5a5;
+        background: #fef2f2;
+        color: #991b1b;
+      }
+      #status.info {
+        color: #6b6458;
+      }
+      #closeBtn {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>เชื่อมต่อ LINE OA</h1>
+    <p class="lede">ใช้เมื่อระบบแจ้งว่า session หมดอายุ หรือต้อง login ใหม่</p>
+    <ol>
+      <li>กดปุ่มด้านล่าง</li>
+      <li>เข้าสู่ระบบ LINE ในหน้าต่างที่เปิด (QR / รหัสผ่าน)</li>
+      <li>รอจนเห็นข้อความสำเร็จ (อย่าปิดหน้าต่างนี้ก่อนเสร็จ)</li>
+    </ol>
+    <button type="button" id="connect">เชื่อมต่อ LINE</button>
+    <button type="button" id="closeBtn" class="secondary">ปิด</button>
+    <div id="status" class="info">พร้อม — กดปุ่มเพื่อเริ่ม</div>
+    <script>
+      const btn = document.getElementById('connect');
+      const closeBtn = document.getElementById('closeBtn');
+      const status = document.getElementById('status');
+
+      function showProgress(p) {
+        if (p.phase === 'error') {
+          status.className = 'err';
+        } else if (p.phase === 'done') {
+          status.className = 'ok';
+        } else {
+          status.className = 'info';
+        }
+        status.textContent = p.message;
+      }
+
+      closeBtn.addEventListener('click', () => {
+        window.lineOaConnect.close();
+      });
+
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        closeBtn.style.display = 'none';
+        status.className = 'info';
+        status.textContent = 'กำลังเปิด LINE…\nเข้าสู่ระบบให้เสร็จในหน้าต่างที่เปิด';
+
+        const stopProgress = window.lineOaConnect.onProgress(showProgress);
+
+        try {
+          const result = await window.lineOaConnect.start();
+          if (result.ok) {
+            status.className = 'ok';
+            status.textContent = '✓ ' + result.message + '\n\nปิดอัตโนมัติใน 3 วินาที…';
+            closeBtn.style.display = 'block';
+            setTimeout(() => window.lineOaConnect.close(), 3000);
+          } else {
+            status.className = 'err';
+            status.textContent = '✗ ' + result.message;
+            closeBtn.style.display = 'block';
+          }
+        } catch (e) {
+          status.className = 'err';
+          status.textContent = '✗ ' + (e && e.message ? e.message : String(e));
+          closeBtn.style.display = 'block';
+        } finally {
+          stopProgress();
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

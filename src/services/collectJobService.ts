@@ -3,8 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { config as dotenvConfig } from 'dotenv';
 import { config } from '../config/index.js';
+import { storageStateExists } from '../automation/auth/sessionManager.js';
 import { getLatestCollectorRun } from '../database/repositories/collectorRunRepository.js';
 import { createModuleLogger } from '../logger/index.js';
+import {
+  sessionExpiredMessage,
+  sessionMissingMessage,
+} from './sessionUploadService.js';
 import {
   eachDayInRange,
   formatDateRange,
@@ -133,7 +138,7 @@ async function describeCollectFailure(exitCode: number): Promise<string> {
   try {
     const run = await getLatestCollectorRun();
     if (run?.runStatus === 'AUTH_REQUIRED') {
-      return 'Session LINE หมดอายุ — รัน npm run login แล้วลองเก็บข้อมูลใหม่';
+      return sessionExpiredMessage();
     }
     if (run?.errorMessage) {
       return `เก็บข้อมูลไม่สำเร็จ (${run.runStatus}) — ${run.errorMessage}`;
@@ -173,6 +178,9 @@ export function startCollectJob(
   }
   if (isLockHeld()) {
     return { ok: false, error: 'มี collector อื่นกำลังทำงานอยู่ (lock)' };
+  }
+  if (!storageStateExists()) {
+    return { ok: false, error: sessionMissingMessage() };
   }
 
   const range =

@@ -5,6 +5,11 @@ node_modules/
 .env
 auth/
 storage-state.json
+exports/
+
+# Session helper (IT config with upload token)
+session-helper/config.json
+session-helper/node_modules/
 
 # Logs & runtime artifacts
 logs/
